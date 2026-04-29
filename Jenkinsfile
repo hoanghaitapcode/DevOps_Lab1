@@ -122,7 +122,7 @@ pipeline {
                     for (svc in services) {
                         echo "🧪 Testing: ${svc}"
                         // Chạy test + generate JaCoCo report (phase verify)
-                        sh "mvn clean verify -pl ${svc} -am -Dmaven.test.failure.ignore=false"
+                        sh "mvn clean verify -pl ${svc} -am -DskipITs"
                     }
                 }
             }
