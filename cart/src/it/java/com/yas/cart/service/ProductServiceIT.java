@@ -20,7 +20,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest
 @Testcontainers
-@ComponentScan(basePackages = {"com.yas.commonlibrary"})
+@ComponentScan(basePackages = { "com.yas.commonlibrary" })
 class ProductServiceIT {
     @Container
     @ServiceConnection
@@ -37,4 +37,6 @@ class ProductServiceIT {
         assertThrows(CallNotPermittedException.class, () -> productService.getProducts(productIds));
         verify(productService, atLeastOnce()).handleProductThumbnailFallback(any());
     }
+
+    // Hihihaha
 }
