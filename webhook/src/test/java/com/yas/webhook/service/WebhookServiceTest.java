@@ -58,13 +58,13 @@ class WebhookServiceTest {
 
         var res = service.getPageableWebhooks(0, 10);
         assertSame(vm, res);
-        verify(webhookRepository).findAll(any());
+        verify(webhookRepository).findAll(any(org.springframework.data.domain.Pageable.class));
     }
 
     @Test
     void findAllWebhooks_mapsEach() {
         Webhook w = new Webhook(); w.setId(2L);
-        when(webhookRepository.findAll((Sort) any())).thenReturn(List.of(w));
+            doReturn(List.of(w)).when(webhookRepository).findAll(any(Sort.class));
         when(webhookMapper.toWebhookVm(w)).thenReturn(new WebhookVm());
 
         var res = service.findAllWebhooks();
@@ -104,15 +104,17 @@ class WebhookServiceTest {
         WebhookEventNotification n = new WebhookEventNotification(); n.setId(100L); n.setNotificationStatus(NotificationStatus.NOTIFYING);
         when(webhookEventNotificationRepository.findById(100L)).thenReturn(Optional.of(n));
 
+        tools.jackson.databind.JsonNode payload = mock(tools.jackson.databind.JsonNode.class);
+
         WebhookEventNotificationDto dto = WebhookEventNotificationDto.builder()
             .notificationId(100L)
             .url("u")
-            .secret("")
-            .payload(null).build();
+            .secret("s")
+            .payload(payload).build();
 
         service.notifyToWebhook(dto);
 
-        verify(webHookApi).notify("u", "s", "p");
+        verify(webHookApi).notify(eq("u"), eq("s"), eq(payload));
         ArgumentCaptor<WebhookEventNotification> cap = ArgumentCaptor.forClass(WebhookEventNotification.class);
         verify(webhookEventNotificationRepository).save(cap.capture());
         assertEquals(NotificationStatus.NOTIFIED, cap.getValue().getNotificationStatus());
@@ -120,7 +122,7 @@ class WebhookServiceTest {
 
     @Test
     void initializeWebhookEvents_whenEventMissing_throws() {
-        WebhookPostVm postVm = WebhookPostVm.builder().events(List.of(EventVm.builder().id(999L).build())).build();
+        WebhookPostVm postVm = new WebhookPostVm(null, null, null, null, List.of(EventVm.builder().id(999L).build()));
         when(webhookMapper.toCreatedWebhook(postVm)).thenReturn(new Webhook());
         when(webhookRepository.save(any())).thenReturn(new Webhook());
         when(eventRepository.findById(999L)).thenReturn(Optional.empty());
