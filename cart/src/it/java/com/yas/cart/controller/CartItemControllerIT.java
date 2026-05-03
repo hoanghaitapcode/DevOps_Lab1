@@ -13,7 +13,7 @@ import com.yas.cart.viewmodel.CartItemPostVm;
 import com.yas.cart.viewmodel.CartItemPutVm;
 import com.yas.cart.viewmodel.ProductThumbnailVm;
 import com.yas.commonlibrary.AbstractControllerIT;
-import com.yas.commonlibrary.IntegrationTestConfiguration;
+import com.yas.commonlibrary.IntegrationTestConfiguration;//shiba
 import io.restassured.response.ValidatableResponse;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
