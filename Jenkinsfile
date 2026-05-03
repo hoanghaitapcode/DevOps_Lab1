@@ -122,9 +122,14 @@ pipeline {
                         allowEmptyResults: true
                     )
                     
-                    // ── Upload Coverage Results ──
-                    recordCoverage(
-                        tools: [[parser: 'JACOCO', pattern: '**/target/site/jacoco/jacoco.xml']]
+                    // ── Upload Coverage Results & Fail logic ──
+                    jacoco(
+                        execPattern: '**/target/jacoco.exec',
+                        classPattern: '**/target/classes',
+                        sourcePattern: '**/src/main/java',
+                        inclusionPattern: '**/*.class',
+                        minimumLineCoverage: '70',
+                        changeBuildStatus: true
                     )
                 }
             }
@@ -186,20 +191,7 @@ pipeline {
             }
         }
 
-        // =====================================================================
-        // STAGE 6: SonarQube Quality Gate
-        // =====================================================================
-        stage('Quality Gate') {
-            when {
-                expression { env.CHANGED_SERVICES?.trim() }
-            }
-            steps {
-                echo "⏳ Waiting for SonarQube Quality Gate..."
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
+        // Đã xóa Quality Gate theo yêu cầu
 
         // =====================================================================
         // STAGE 7: Snyk Security Scan
