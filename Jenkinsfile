@@ -91,7 +91,8 @@ pipeline {
             steps {
                 echo "🔍 Scanning for secrets with Gitleaks..."
                 // Dùng Docker để chạy gitleaks nhằm tự động cô lập và không cần cài đặt binary trên node
-                sh "docker run --rm -v ${env.WORKSPACE}:/path zricethezav/gitleaks:latest detect --source='/path' -v"
+                // Thêm tùy chọn -c để báo Gitleaks phải đọc cấu hình gitleaks.toml đã có
+                sh "docker run --rm -v ${env.WORKSPACE}:/path zricethezav/gitleaks:latest detect --source='/path' -c '/path/gitleaks.toml' -v"
             }
         }
 
