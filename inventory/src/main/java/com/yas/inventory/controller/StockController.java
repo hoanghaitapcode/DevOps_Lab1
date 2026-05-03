@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping(ApiConstant.STOCK_URL)
+@RequestMapping(ApiConstant.STOCK_URL)//shiba
 @RequiredArgsConstructor
 public class StockController {
     private final StockService stockService;
