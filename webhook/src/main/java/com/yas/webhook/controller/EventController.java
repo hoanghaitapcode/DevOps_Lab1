@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(ApiConstant.EVENT_URL)
 public class EventController {
-    private final EventService eventService;
+    private final EventService eventService;//shiba
 
     public EventController(EventService eventService) {
         this.eventService = eventService;
