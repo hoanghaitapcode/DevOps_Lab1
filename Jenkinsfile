@@ -2,7 +2,7 @@
 // YAS Monorepo CI Pipeline - Jenkinsfile
 // =============================================================================
 // Pipeline tự động phát hiện service nào thay đổi và chỉ build/test service đó.
-// Yêu cầu plugin: Pipeline, Git, JUnit, SonarQube Scanner, Snyk Security
+// Yêu cầu plugin: Pipeline, Git, JUnit, SonarQube Scanner, Snyk Security, Jacoco
 // =============================================================================
 
 pipeline {
@@ -109,8 +109,8 @@ pipeline {
                     def services = env.CHANGED_SERVICES.split(',')
                     for (svc in services) {
                         echo "🧪 Testing: ${svc}"
-                        // Chạy Unit Test (bỏ qua Integration Test để tránh lỗi DB)
-                        sh "mvn clean verify -pl ${svc} -am -DskipITs"
+                        // 🛠️ FIX 1: Thêm 'jacoco:report' để ép Maven tạo ra file jacoco.xml cho SonarQube đọc
+                        sh "mvn clean verify jacoco:report -pl ${svc} -am -DskipITs"
                     }
                 }
             }
@@ -121,7 +121,11 @@ pipeline {
                         testResults: '**/target/surefire-reports/TEST-*.xml, **/target/failsafe-reports/TEST-*.xml',
                         allowEmptyResults: true
                     )
-                    // ĐÃ XÓA LỆNH jacoco() GÂY LỖI Ở ĐÂY
+                    
+                    // ── Upload Coverage Results ──
+                    recordCoverage(
+                        tools: [[parser: 'JACOCO', pattern: '**/target/site/jacoco/jacoco.xml']]
+                    )
                 }
             }
         }
@@ -156,13 +160,23 @@ pipeline {
                     def services = env.CHANGED_SERVICES.split(',')
                     for (svc in services) {
                         echo "🔍 SonarQube scanning: ${svc}"
+                        
+                        // 🛠️ FIX 2: Phân loại rạch ròi giữa Pull Request và Branch thông thường cho SonarCloud
+                        def sonarParams = ""
+                        if (env.CHANGE_ID) {
+                            sonarParams = "-Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.branch=${env.CHANGE_BRANCH} -Dsonar.pullrequest.base=${env.CHANGE_TARGET}"
+                        } else {
+                            sonarParams = "-Dsonar.branch.name=${env.BRANCH_NAME}"
+                        }
+
                         withSonarQubeEnv('SonarCloud') {  
-                            // Đã tối ưu: withSonarQubeEnv tự động xử lý URL và Token
+                            // 🛠️ FIX 3: Truyền tham số ${sonarParams} vào lệnh Maven
                             sh """
                                 mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
                                     -pl ${svc} -am \
                                     -Dsonar.organization=${SONAR_ORG} \
                                     -Dsonar.projectKey=hoanghaitapcode_DevOps_Lab1 \
+                                    ${sonarParams} \
                                     -Dsonar.java.coveragePlugin=jacoco \
                                     -Dsonar.coverage.jacoco.xmlReportPaths=${svc}/target/site/jacoco/jacoco.xml
                             """
