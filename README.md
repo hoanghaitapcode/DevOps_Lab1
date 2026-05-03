@@ -57,7 +57,7 @@ YAS is a pet project aim to practice building a typical microservice application
 127.0.0.1 elasticsearch
 127.0.0.1 kafka
 ```
-3. Open terminal of your choice, go to `yas` directory, run `docker compose up`, wait for all the containers up and running
+3. Open terminal of your choice, go to `yas` directory, run `docker compose up`, wait for all the containers up and running HAHAHAHAHA
 
 > *_Warning:_* To run all the containers, you need a minimum of 16GB of RAM. Otherwise, you can only run the core services with this command `docker compose -f docker-compose.yml up`
 
