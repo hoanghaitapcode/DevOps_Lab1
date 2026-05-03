@@ -60,6 +60,7 @@ class CartItemControllerTest {
                 .quantity(1);
         }
 
+
         @Test
         void testAddToCart_whenProductIdIsNull_shouldReturnBadRequest() throws Exception {
             CartItemPostVm cartItemPostVm = cartItemPostVmBuilder.productId(null).build();
