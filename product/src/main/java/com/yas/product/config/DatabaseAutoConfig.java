@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-@Configuration
+@Configuration//shiba
 @EnableJpaRepositories("com.yas.product.repository")
 @EntityScan({"com.yas.product.model", "com.yas.product.model.attribute"})
 @EnableJpaAuditing(auditorAwareRef = "auditorAware")
