@@ -45,6 +45,7 @@ import com.yas.product.viewmodel.product.ProductListGetVm;
 import com.yas.product.viewmodel.product.ProductListVm;
 import com.yas.product.viewmodel.product.ProductPostVm;
 import com.yas.product.viewmodel.product.ProductPutVm;
+import com.yas.product.viewmodel.productoption.ProductOptionValuePutVm;
 import com.yas.commonlibrary.exception.BadRequestException;
 import com.yas.product.viewmodel.product.ProductQuantityPostVm;
 import com.yas.product.viewmodel.product.ProductQuantityPutVm;
@@ -57,6 +58,11 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import com.yas.commonlibrary.exception.DuplicatedException;
+import com.yas.product.viewmodel.product.ProductOptionValueDisplay;
+import com.yas.product.viewmodel.product.ProductVariationPostVm;
+import java.util.Map;
+import static org.mockito.ArgumentMatchers.anyList;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -66,8 +72,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.yas.commonlibrary.exception.InternalServerErrorException;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ProductServiceTest {
 
 	@Mock
@@ -155,6 +168,18 @@ class ProductServiceTest {
 	}
 
 	@Test
+	void createProduct_whenLengthLessThanWidth_thenBadRequest() {
+		ProductPostVm postVm = new ProductPostVm(
+			"Product Small", "small-prod", 11L, List.of(21L), "short", "desc", "spec", "SKU-S", "GTIN-S",
+			1.0, null, 2.0, 3.0, 4.0, 100.0, true, true, true, true, true,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(), List.of(), List.of(), List.of(), 5L
+		);
+
+		org.junit.jupiter.api.Assertions.assertThrows(com.yas.commonlibrary.exception.BadRequestException.class,
+			() -> productService.createProduct(postVm));
+	}
+
+	@Test
 	void getLatestProducts_whenProductsExist_thenReturnMappedList() {
 		when(productRepository.getLatestProducts(any(Pageable.class))).thenReturn(List.of(product));
 
@@ -163,6 +188,62 @@ class ProductServiceTest {
 		assertThat(result).hasSize(1);
 		assertThat(result.getFirst().id()).isEqualTo(1L);
 		assertThat(result.getFirst().name()).isEqualTo("Product A");
+	}
+
+	@Test
+	void updateProduct_whenBrandNotFound_thenThrowNotFoundException() {
+		ProductPutVm putVm = new ProductPutVm(
+			"Product Updated", "product-a", 150.0, true, true, true, true, true, 99L, List.of(21L),
+			"short updated", "desc updated", "spec updated", "SKU-U", "GTIN-U", 2.0, null, 2.0, 2.0, 2.0,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(), List.of(), List.of(), List.of(), 5L
+		);
+
+		when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+		when(brandRepository.findById(99L)).thenReturn(Optional.empty());
+
+		org.junit.jupiter.api.Assertions.assertThrows(com.yas.commonlibrary.exception.NotFoundException.class,
+			() -> productService.updateProduct(1L, putVm));
+	}
+
+	@Test
+	void updateProduct_whenCategoryIdsNotFound_thenThrowBadRequest() {
+		ProductPutVm putVm = new ProductPutVm(
+			"Product Updated", "product-a", 150.0, true, true, true, true, true, 11L, List.of(999L),
+			"short updated", "desc updated", "spec updated", "SKU-U", "GTIN-U", 2.0, null, 2.0, 2.0, 2.0,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(), List.of(), List.of(), List.of(), 5L
+		);
+
+		when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+		when(categoryRepository.findAllById(List.of(999L))).thenReturn(List.of());
+
+		org.junit.jupiter.api.Assertions.assertThrows(com.yas.commonlibrary.exception.BadRequestException.class,
+			() -> productService.updateProduct(1L, putVm));
+	}
+
+	@Test
+	void updateProduct_whenNoMatchingProductOptions_thenThrowBadRequest() {
+		ProductPutVm putVm = new ProductPutVm(
+			"Product Updated", "product-a", 150.0, true, true, true, true, true, 11L, List.of(21L),
+			"short updated", "desc updated", "spec updated", "SKU-U", "GTIN-U", 2.0, null, 2.0, 2.0, 2.0,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(), List.of(), List.of(), List.of(), 5L
+		);
+
+		org.mockito.Mockito.lenient().when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+		org.mockito.Mockito.lenient().when(brandRepository.findById(11L)).thenReturn(Optional.of(brand));
+		when(categoryRepository.findAllById(List.of(21L))).thenReturn(List.of(category));
+		// include one productOptionValue to force getProductOptionByIdMap to run
+		ProductOptionValuePutVm pov = new ProductOptionValuePutVm(7L, "TYPE", 1, List.of("v1"));
+		ProductPutVm putVmWithOptions = new ProductPutVm(
+			"Product Updated", "product-a", 150.0, true, true, true, true, true, 11L, List.of(21L),
+			"short updated", "desc updated", "spec updated", "SKU-U", "GTIN-U", 2.0, null, 2.0, 2.0, 2.0,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(), List.of(pov), List.of(), List.of(), 5L
+		);
+
+		// productOptionRepository returns empty to trigger BadRequest
+		when(productOptionRepository.findAllByIdIn(anyList())).thenReturn(List.of());
+
+		org.junit.jupiter.api.Assertions.assertThrows(com.yas.commonlibrary.exception.BadRequestException.class,
+			    () -> productService.updateProduct(1L, putVmWithOptions));
 	}
 
 	@Test
@@ -218,7 +299,7 @@ class ProductServiceTest {
 	@Test
 	void updateProductQuantity_shouldUpdateMatchedProducts() {
 		ProductQuantityPostVm quantityVm = new ProductQuantityPostVm(1L, 7L);
-		when(productRepository.findAllByIdIn(List.of(1L))).thenReturn(List.of(product));
+		when(productRepository.findAllByIdIn(anyList())).thenReturn(List.of(product));
 
 		productService.updateProductQuantity(List.of(quantityVm));
 
@@ -230,7 +311,7 @@ class ProductServiceTest {
 	void restoreStockQuantity_shouldAddBackStock() {
 		ProductQuantityPutVm quantityVm = new ProductQuantityPutVm(1L, 3L);
 		product.setStockQuantity(5L);
-		when(productRepository.findAllByIdIn(List.of(1L))).thenReturn(List.of(product));
+		when(productRepository.findAllByIdIn(anyList())).thenReturn(List.of(product));
 
 		productService.restoreStockQuantity(List.of(quantityVm));
 
@@ -239,14 +320,42 @@ class ProductServiceTest {
 	}
 
 	@Test
+	void restoreStockQuantity_withDuplicateProductIds_shouldMergeAndAdd() {
+		ProductQuantityPutVm q1 = new ProductQuantityPutVm(1L, 3L);
+		ProductQuantityPutVm q2 = new ProductQuantityPutVm(1L, 4L);
+		product.setStockQuantity(10L);
+		when(productRepository.findAllByIdIn(anyList())).thenReturn(List.of(product));
+
+		productService.restoreStockQuantity(List.of(q1, q2));
+
+		// merged quantity = 7 => 10 + 7 = 17
+		assertThat(product.getStockQuantity()).isEqualTo(17L);
+		verify(productRepository).saveAll(List.of(product));
+	}
+
+	@Test
 	void subtractStockQuantity_shouldNotGoBelowZero() {
 		ProductQuantityPutVm quantityVm = new ProductQuantityPutVm(1L, 9L);
 		product.setStockQuantity(5L);
-		when(productRepository.findAllByIdIn(List.of(1L))).thenReturn(List.of(product));
+		when(productRepository.findAllByIdIn(anyList())).thenReturn(List.of(product));
 
 		productService.subtractStockQuantity(List.of(quantityVm));
 
 		assertThat(product.getStockQuantity()).isEqualTo(0L);
+		verify(productRepository).saveAll(List.of(product));
+	}
+
+	@Test
+	void subtractStockQuantity_withDuplicateProductIds_shouldMergeAndSubtract() {
+		ProductQuantityPutVm q1 = new ProductQuantityPutVm(1L, 3L);
+		ProductQuantityPutVm q2 = new ProductQuantityPutVm(1L, 4L);
+		product.setStockQuantity(10L);
+		when(productRepository.findAllByIdIn(anyList())).thenReturn(List.of(product));
+
+		productService.subtractStockQuantity(List.of(q1, q2));
+
+		// merged quantity = 7 => 10 - 7 = 3
+		assertThat(product.getStockQuantity()).isEqualTo(3L);
 		verify(productRepository).saveAll(List.of(product));
 	}
 
@@ -316,7 +425,7 @@ class ProductServiceTest {
 
 	@Test
 	void getProductByIds_shouldMapProducts() {
-		when(productRepository.findAllByIdIn(List.of(1L))).thenReturn(List.of(product));
+		when(productRepository.findAllByIdIn(anyList())).thenReturn(List.of(product));
 
 		List<ProductListVm> result = productService.getProductByIds(List.of(1L));
 
@@ -517,6 +626,68 @@ class ProductServiceTest {
 	}
 
 	@Test
+	void createProduct_whenLengthLessThanWidth_thenThrowBadRequest() {
+		ProductPostVm postVm = new ProductPostVm(
+			"Product Small", "small-prod", 11L, List.of(21L), "short", "desc", "spec", "SKU-S", "GTIN-S",
+			1.0, null, 1.0, 2.0, 0.5, 100.0, true, true, true, true, true,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(), List.of(), List.of(), List.of(), 5L
+		);
+
+		assertThrows(BadRequestException.class, () -> productService.createProduct(postVm));
+	}
+
+	@Test
+	void createProduct_whenDuplicateVariationSlugs_thenThrowDuplicatedException() {
+		ProductVariationPostVm v1 = new ProductVariationPostVm("v1", "dup", "sku1", "gtin1", 10.0, null, List.of(), Map.of());
+		ProductVariationPostVm v2 = new ProductVariationPostVm("v2", "dup", "sku2", "gtin2", 12.0, null, List.of(), Map.of());
+		ProductPostVm postVm = new ProductPostVm(
+			"Main", "main", 11L, List.of(21L), "short", "desc", "spec", "SKU-M", "GTIN-M",
+			1.0, null, 1.0, 1.0, 1.0, 100.0, true, true, true, true, true,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(v1, v2), List.of(), List.of(), List.of(), 5L
+		);
+
+		when(productRepository.findBySlugAndIsPublishedTrue("main")).thenReturn(Optional.empty());
+
+		assertThrows(DuplicatedException.class, () -> productService.createProduct(postVm));
+	}
+
+	@Test
+	void createProduct_whenNoMatchingOptionValues_thenThrowBadRequest() {
+		ProductVariationPostVm variation = new ProductVariationPostVm("v1", "v1", "sku1", "gtin1", 10.0, null, List.of(), Map.of());
+		ProductOptionValueDisplay optionDisplay = ProductOptionValueDisplay.builder()
+			.productOptionId(7L)
+			.displayType("TYPE")
+			.displayOrder(1)
+			.value("val")
+			.build();
+
+		com.yas.product.viewmodel.productoption.ProductOptionValuePostVm povPost =
+			new com.yas.product.viewmodel.productoption.ProductOptionValuePostVm(7L, "TYPE", 1, List.of("val"));
+
+		ProductPostVm postVm = new ProductPostVm(
+			"Main2", "main2", 11L, List.of(21L), "short", "desc", "spec", "SKU-M2", "GTIN-M2",
+			1.0, null, 1.0, 1.0, 1.0, 100.0, true, true, true, true, true,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(variation), List.of(povPost), List.of(optionDisplay), List.of(), 5L
+		);
+
+		when(productRepository.findBySlugAndIsPublishedTrue("main2")).thenReturn(Optional.empty());
+		when(brandRepository.findById(11L)).thenReturn(Optional.of(brand));
+		when(categoryRepository.findAllById(List.of(21L))).thenReturn(List.of(category));
+
+		when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
+			Product p = invocation.getArgument(0);
+			p.setId(99L);
+			return p;
+		});
+		when(productRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		// no product options returned -> should throw BadRequest
+		when(productOptionRepository.findAllByIdIn(anyList())).thenReturn(List.of());
+
+		assertThrows(BadRequestException.class, () -> productService.createProduct(postVm));
+	}
+
+	@Test
 	void createProduct_whenSlugExists_shouldThrowDuplicatedException() {
 		ProductPostVm postVm = new ProductPostVm(
 			"Product New", "product-a", 11L, List.of(21L), "short", "desc", "spec", "SKU-N", "GTIN-N",
@@ -554,5 +725,128 @@ class ProductServiceTest {
 		when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
 		assertThrows(NotFoundException.class, () -> productService.updateProduct(99L, putVm));
+	}
+
+	@Test
+	void validateProductVariationDuplicates_whenDuplicateSku_thenThrowDuplicatedException() {
+		ProductVariationPostVm v1 = new ProductVariationPostVm("v1", "s1", "dup-sku", "", 10.0, null, List.of(), Map.of());
+		ProductVariationPostVm v2 = new ProductVariationPostVm("v2", "s2", "dup-sku", "", 12.0, null, List.of(), Map.of());
+		ProductPostVm postVm = new ProductPostVm(
+			"MainDupSku", "maindup", 11L, List.of(21L), "short", "desc", "spec", "SKU-M", "",
+			1.0, null, 1.0, 1.0, 1.0, 100.0, true, true, true, true, true,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(v1, v2), List.of(), List.of(), List.of(), 5L
+		);
+
+		when(productRepository.findBySlugAndIsPublishedTrue("maindup")).thenReturn(Optional.empty());
+
+		assertThrows(DuplicatedException.class, () -> productService.createProduct(postVm));
+	}
+
+	@Test
+	void validateProductVariationDuplicates_whenDuplicateGtin_thenThrowDuplicatedException() {
+		ProductVariationPostVm v1 = new ProductVariationPostVm("v1", "s1", "sku1", "dup-gtin", 10.0, null, List.of(), Map.of());
+		ProductVariationPostVm v2 = new ProductVariationPostVm("v2", "s2", "sku2", "dup-gtin", 12.0, null, List.of(), Map.of());
+		ProductPostVm postVm = new ProductPostVm(
+			"MainDupGtin", "maindg", 11L, List.of(21L), "short", "desc", "spec", "SKU-M", "",
+			1.0, null, 1.0, 1.0, 1.0, 100.0, true, true, true, true, true,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(v1, v2), List.of(), List.of(), List.of(), 5L
+		);
+
+		when(productRepository.findBySlugAndIsPublishedTrue("maindg")).thenReturn(Optional.empty());
+
+		assertThrows(DuplicatedException.class, () -> productService.createProduct(postVm));
+	}
+
+	@Test
+	void createProduct_whenSavedVariationsMissing_thenThrowInternalServerError() {
+		ProductVariationPostVm variation = new ProductVariationPostVm("v1", "var1", "sku1", "", 10.0, null, List.of(), Map.of(7L, "val"));
+		com.yas.product.viewmodel.productoption.ProductOptionValuePostVm povPost =
+			new com.yas.product.viewmodel.productoption.ProductOptionValuePostVm(7L, "TYPE", 1, List.of("val"));
+		ProductOption option = new ProductOption();
+		option.setId(7L);
+
+		ProductPostVm postVm = new ProductPostVm(
+			"MainMissingSaved", "mainms", 11L, List.of(21L), "short", "desc", "spec", "SKU-M", "",
+			1.0, null, 1.0, 1.0, 1.0, 100.0, true, true, true, true, true,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(variation), List.of(povPost), List.of(), List.of(), 5L
+		);
+
+		when(productRepository.findBySlugAndIsPublishedTrue("mainms")).thenReturn(Optional.empty());
+		when(brandRepository.findById(11L)).thenReturn(Optional.of(brand));
+		when(categoryRepository.findAllById(List.of(21L))).thenReturn(List.of(category));
+		when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
+			Product p = invocation.getArgument(0);
+			p.setId(55L);
+			return p;
+		});
+		// simulate saveAll returning empty -> createOptionCombinations will not find savedVariation
+		when(productRepository.saveAll(anyList())).thenReturn(List.of());
+		when(productOptionRepository.findAllByIdIn(anyList())).thenReturn(List.of(option));
+		when(productOptionValueRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		assertThrows(InternalServerErrorException.class, () -> productService.createProduct(postVm));
+	}
+
+	@Test
+	void createProduct_whenCategorySizeMismatch_thenThrowBadRequest() {
+		ProductPostVm postVm = new ProductPostVm(
+			"MainCatMismatch", "maincat", 11L, new java.util.ArrayList<>(List.of(21L, 22L)), "short", "desc", "spec", "SKU-C", "",
+			1.0, null, 1.0, 1.0, 1.0, 100.0, true, true, true, true, true,
+			"meta", "meta", "meta", 100L, List.of(101L), List.of(), List.of(), List.of(), List.of(), 5L
+		);
+
+		when(productRepository.findBySlugAndIsPublishedTrue("maincat")).thenReturn(Optional.empty());
+		when(brandRepository.findById(11L)).thenReturn(Optional.of(brand));
+		// return only one category while vm asks for two -> should throw BadRequest
+		when(categoryRepository.findAllById(List.of(21L, 22L))).thenReturn(List.of(category));
+
+		when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		assertThrows(BadRequestException.class, () -> productService.createProduct(postVm));
+	}
+
+	@Test
+	void setProductImages_whenExistingImages_thenDeleteAndReturnNewOnes() {
+		Product p = new Product();
+		p.setId(500L);
+		p.setProductImages(List.of(ProductImage.builder().imageId(1L).product(p).build(), ProductImage.builder().imageId(2L).product(p).build()));
+
+		List<ProductImage> newImages = productService.setProductImages(List.of(2L, 3L), p);
+
+		// should add image 3 and delete image 1
+		verify(productImageRepository).deleteByImageIdInAndProductId(List.of(1L), 500L);
+		assertThat(newImages).hasSize(1);
+	}
+
+	@Test
+	void setProductImages_whenEmptyInput_thenDeleteAllAndReturnEmpty() {
+		Product p = new Product();
+		p.setId(600L);
+		p.setProductImages(List.of(ProductImage.builder().imageId(10L).product(p).build()));
+
+		List<ProductImage> result = productService.setProductImages(List.of(), p);
+
+		verify(productImageRepository).deleteByProductId(600L);
+		assertThat(result).isEmpty();
+	}
+
+	@Test
+	void getLatestProducts_whenRepoReturnsEmpty_thenReturnEmptyList() {
+		when(productRepository.getLatestProducts(any(Pageable.class))).thenReturn(List.of());
+		assertThat(productService.getLatestProducts(1)).isEmpty();
+	}
+
+	@Test
+	void getProductsByBrand_whenBrandMissing_thenThrowNotFound() {
+		when(brandRepository.findBySlug("missing")).thenReturn(Optional.empty());
+		org.junit.jupiter.api.Assertions.assertThrows(com.yas.commonlibrary.exception.NotFoundException.class,
+			() -> productService.getProductsByBrand("missing"));
+	}
+
+	@Test
+	void getProductsFromCategory_whenCategoryMissing_thenThrowNotFound() {
+		when(categoryRepository.findBySlug("missing-cat")).thenReturn(Optional.empty());
+		org.junit.jupiter.api.Assertions.assertThrows(com.yas.commonlibrary.exception.NotFoundException.class,
+			() -> productService.getProductsFromCategory(0, 10, "missing-cat"));
 	}
 }
