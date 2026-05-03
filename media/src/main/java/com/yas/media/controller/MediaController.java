@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RequiredArgsConstructor
 public class MediaController {
-    private final MediaService mediaService;
+    private final MediaService mediaService;//shibaloncha
 
     @PostMapping(path = "/medias", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     @ApiResponses(value = {
