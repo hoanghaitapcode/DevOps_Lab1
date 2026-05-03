@@ -27,6 +27,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 
+//hi
 @Import(IntegrationTestConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class RatingControllerIT extends AbstractControllerIT {
@@ -57,10 +58,8 @@ public class RatingControllerIT extends AbstractControllerIT {
                     .ignore(Select.field((Rating::getId)))
                     .generate(
                             Select.field((Rating::getRatingStar)),
-                            gen -> gen.ints().min(0).max(5)
-                    )
-                    .create()
-            );
+                            gen -> gen.ints().min(0).max(5))
+                    .create());
         }
         ratingRepository.saveAll(set);
     }
@@ -148,7 +147,8 @@ public class RatingControllerIT extends AbstractControllerIT {
     void TestCreateRating_WhenValidRequest_ShouldSuccess() throws Exception {
         CustomerVm customer = Instancio.create(CustomerVm.class);
         RatingPostVm vm = new RatingPostVm("rating content", 5, rating.getProductId(), rating.getProductName());
-        when(orderService.checkOrderExistsByProductAndUserWithStatus(anyLong())).thenReturn(new OrderExistsByProductAndUserGetVm(true));
+        when(orderService.checkOrderExistsByProductAndUserWithStatus(anyLong()))
+                .thenReturn(new OrderExistsByProductAndUserGetVm(true));
         when(customerService.getCustomer()).thenReturn(customer);
         given(getRequestSpecification())
                 .auth().oauth2(getAccessToken("admin", "admin"))
@@ -163,7 +163,8 @@ public class RatingControllerIT extends AbstractControllerIT {
     @Test
     void TestCreateRating_WhenRatingExisted_ShouldThrowException() throws Exception {
         RatingPostVm vm = new RatingPostVm("rating content", 5, rating.getProductId(), rating.getProductName());
-        when(orderService.checkOrderExistsByProductAndUserWithStatus(anyLong())).thenReturn(new OrderExistsByProductAndUserGetVm(false));
+        when(orderService.checkOrderExistsByProductAndUserWithStatus(anyLong()))
+                .thenReturn(new OrderExistsByProductAndUserGetVm(false));
         given(getRequestSpecification())
                 .auth().oauth2(getAccessToken("admin", "admin"))
                 .when()
@@ -177,7 +178,8 @@ public class RatingControllerIT extends AbstractControllerIT {
     @Test
     void TestCreateRating_WhenInvalidUser_ShouldThrowNotFoundException() throws Exception {
         RatingPostVm vm = new RatingPostVm("rating content", 5, rating.getProductId(), rating.getProductName());
-        when(orderService.checkOrderExistsByProductAndUserWithStatus(anyLong())).thenReturn(new OrderExistsByProductAndUserGetVm(true));
+        when(orderService.checkOrderExistsByProductAndUserWithStatus(anyLong()))
+                .thenReturn(new OrderExistsByProductAndUserGetVm(true));
         when(customerService.getCustomer()).thenReturn(null);
         given(getRequestSpecification())
                 .auth().oauth2(getAccessToken("admin", "admin"))
