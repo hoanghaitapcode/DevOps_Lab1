@@ -74,6 +74,15 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Enable local report generation for coverage analysis -->
+                    <skip>false</skip>
+                    <excludes>
+                        <exclude>net/bytebuddy/**</exclude>
+                        <exclude>org/mockito/**</exclude>
+                        <exclude>org/springframework/**</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

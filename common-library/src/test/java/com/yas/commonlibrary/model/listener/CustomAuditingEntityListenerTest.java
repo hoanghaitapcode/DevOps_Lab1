@@ -40,4 +40,31 @@ class CustomAuditingEntityListenerTest {
         // Nếu cái này cũng văng NPE, hãy dùng assertThrows tương tự
         assertDoesNotThrow(() -> nullListener.touchForCreate(entity));
     }
+
+    @Test
+    void touchForCreate_whenCreatedByPresent_setsLastModifiedByIfMissing() {
+        when(entity.getCreatedBy()).thenReturn("user-1");
+        when(entity.getLastModifiedBy()).thenReturn(null);
+
+        listener.touchForCreate(entity);
+
+        verify(entity).setLastModifiedBy("user-1");
+    }
+
+    @Test
+    void touchForCreate_whenCreatedByAndLastModifiedByPresent_doesNotOverride() {
+        when(entity.getCreatedBy()).thenReturn("user-1");
+        when(entity.getLastModifiedBy()).thenReturn("user-2");
+
+        listener.touchForCreate(entity);
+
+        verify(entity, never()).setLastModifiedBy(any());
+    }
+
+    @Test
+    void touchForUpdate_whenLastModifiedByPresent_doesNotThrow() {
+        when(entity.getLastModifiedBy()).thenReturn("user-1");
+
+        assertDoesNotThrow(() -> listener.touchForUpdate(entity));
+    }
 }
