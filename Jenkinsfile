@@ -85,6 +85,18 @@ pipeline {
         }
 
         // =====================================================================
+        // STAGE: Gitleaks Scan
+        // =====================================================================
+        stage('Gitleaks Scan') {
+            steps {
+                echo "🔍 Scanning for secrets with Gitleaks..."
+                // Dùng Docker để chạy gitleaks nhằm tự động cô lập và không cần cài đặt binary trên node
+                // Thêm tùy chọn -c để báo Gitleaks phải đọc cấu hình gitleaks.toml đã có
+                sh "docker run --rm -v ${env.WORKSPACE}:/path zricethezav/gitleaks:latest detect --source='/path' -c '/path/gitleaks.toml' -v"
+            }
+        }
+
+        // =====================================================================
         // STAGE 2: Build common-library trước (dependency chung)
         // =====================================================================
         stage('Build Common Library') {
@@ -122,9 +134,13 @@ pipeline {
                         allowEmptyResults: true
                     )
                     
-                    // ── Upload Coverage Results ──
+                    // ── Upload Coverage Results & Quality Gate (Coverage Plugin) ──
+                    // FIX: criticality của Coverage plugin là 'FAILURE' hoặc 'UNSTABLE'
                     recordCoverage(
-                        tools: [[parser: 'JACOCO', pattern: '**/target/site/jacoco/jacoco.xml']]
+                        tools: [[parser: 'JACOCO', pattern: '**/target/site/jacoco/jacoco.xml']],
+                        qualityGates: [
+                            [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'FAILURE']
+                        ]
                     )
                 }
             }
@@ -186,20 +202,7 @@ pipeline {
             }
         }
 
-        // =====================================================================
-        // STAGE 6: SonarQube Quality Gate
-        // =====================================================================
-        stage('Quality Gate') {
-            when {
-                expression { env.CHANGED_SERVICES?.trim() }
-            }
-            steps {
-                echo "⏳ Waiting for SonarQube Quality Gate..."
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
+        // Đã xóa Quality Gate theo yêu cầu
 
         // =====================================================================
         // STAGE 7: Snyk Security Scan

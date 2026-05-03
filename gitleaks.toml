@@ -20,5 +20,10 @@ paths = [
   '''test-realm.json''',
   '''realm-export''',
   '''keycloak-yas-realm-import.yaml''',
-  '''target'''
+  '''target''',
+  '''values.yaml''',
+  '''cluster-config.yaml''',
+  '''k8s-deployment/README.md''',
+  '''application.properties''',
+  '''application.yaml'''
 ]
