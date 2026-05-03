@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
+import com.yas.commonlibrary.exception.BadRequestException;
 import com.yas.commonlibrary.exception.NotFoundException;
 import com.yas.commonlibrary.exception.StockExistingException;
 import com.yas.inventory.model.Stock;
@@ -107,6 +108,92 @@ class StockServiceTest {
         // quantity should be increased
         assertEquals(15L, s.getQuantity());
         verify(stockRepository).saveAll(List.of(s));
+        verify(stockHistoryService).createStockHistories(List.of(s), List.of(sq));
+        verify(productService).updateProductQuantity(anyList());
+    }
+
+    @Test
+    void updateProductQuantityInStock_whenQuantityNull_defaultsToZero() {
+        Warehouse w = Warehouse.builder().id(1L).name("w").addressId(2L).build();
+        Stock s = Stock.builder().id(200L).productId(99L).quantity(7L).reservedQuantity(0L).warehouse(w).build();
+        when(stockRepository.findAllById(List.of(200L))).thenReturn(List.of(s));
+
+        StockQuantityVm sq = new StockQuantityVm(200L, null, "note");
+        StockQuantityUpdateVm req = new StockQuantityUpdateVm(List.of(sq));
+
+        svc.updateProductQuantityInStock(req);
+
+        assertEquals(7L, s.getQuantity());
+        verify(stockHistoryService).createStockHistories(List.of(s), List.of(sq));
+        verify(productService).updateProductQuantity(anyList());
+    }
+
+    @Test
+    void updateProductQuantityInStock_whenNoUpdates_skipsProductQuantityUpdate() {
+        when(stockRepository.findAllById(List.of())).thenReturn(List.of());
+
+        StockQuantityUpdateVm req = new StockQuantityUpdateVm(List.of());
+
+        svc.updateProductQuantityInStock(req);
+
+        verify(stockHistoryService).createStockHistories(List.of(), List.of());
+        verify(productService, never()).updateProductQuantity(anyList());
+    }
+
+    @Test
+    void updateProductQuantityInStock_whenStockNotInRequest_skipsUpdate() {
+        StockQuantityVm other = new StockQuantityVm(999L, 3L, "note");
+        StockQuantityUpdateVm req = new StockQuantityUpdateVm(List.of(other));
+
+        when(stockRepository.findAllById(List.of(999L))).thenReturn(List.of());
+
+        svc.updateProductQuantityInStock(req);
+
+        verify(stockHistoryService).createStockHistories(List.of(), List.of(other));
+        verify(productService, never()).updateProductQuantity(anyList());
+    }
+
+    @Test
+    void updateProductQuantityInStock_whenRepositoryReturnsDifferentId_skipsUpdate() {
+        Warehouse w = Warehouse.builder().id(1L).name("w").addressId(2L).build();
+        Stock s = Stock.builder().id(300L).productId(66L).quantity(9L).reservedQuantity(0L).warehouse(w).build();
+
+        StockQuantityVm requested = new StockQuantityVm(111L, 3L, "note");
+        StockQuantityUpdateVm req = new StockQuantityUpdateVm(List.of(requested));
+
+        when(stockRepository.findAllById(List.of(111L))).thenReturn(List.of(s));
+
+        svc.updateProductQuantityInStock(req);
+
+        assertEquals(9L, s.getQuantity());
+        verify(stockHistoryService).createStockHistories(List.of(s), List.of(requested));
+        verify(productService).updateProductQuantity(anyList());
+    }
+
+    @Test
+    void updateProductQuantityInStock_whenAdjustedQuantityInvalid_throws() {
+        Warehouse w = Warehouse.builder().id(1L).name("w").addressId(2L).build();
+        Stock s = Stock.builder().id(400L).productId(88L).quantity(-5L).reservedQuantity(0L).warehouse(w).build();
+        when(stockRepository.findAllById(List.of(400L))).thenReturn(List.of(s));
+
+        StockQuantityVm sq = new StockQuantityVm(400L, -1L, "note");
+        StockQuantityUpdateVm req = new StockQuantityUpdateVm(List.of(sq));
+
+        assertThrows(BadRequestException.class, () -> svc.updateProductQuantityInStock(req));
+    }
+
+    @Test
+    void updateProductQuantityInStock_whenAdjustedQuantityNegativeButAllowed_updates() {
+        Warehouse w = Warehouse.builder().id(1L).name("w").addressId(2L).build();
+        Stock s = Stock.builder().id(500L).productId(88L).quantity(10L).reservedQuantity(0L).warehouse(w).build();
+        when(stockRepository.findAllById(List.of(500L))).thenReturn(List.of(s));
+
+        StockQuantityVm sq = new StockQuantityVm(500L, -1L, "note");
+        StockQuantityUpdateVm req = new StockQuantityUpdateVm(List.of(sq));
+
+        svc.updateProductQuantityInStock(req);
+
+        assertEquals(9L, s.getQuantity());
         verify(stockHistoryService).createStockHistories(List.of(s), List.of(sq));
         verify(productService).updateProductQuantity(anyList());
     }

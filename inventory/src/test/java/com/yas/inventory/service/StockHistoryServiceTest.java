@@ -53,4 +53,19 @@ class StockHistoryServiceTest {
         assertEquals(1, res.data().size());
         assertEquals("pname", res.data().get(0).productName());
     }
+
+    @Test
+    void createStockHistories_whenNoMatchingQuantity_savesEmptyList() {
+        Warehouse w = Warehouse.builder().id(1L).name("w").addressId(2L).build();
+        Stock s = Stock.builder().id(10L).productId(55L).quantity(3L).warehouse(w).build();
+
+        StockQuantityVm vm = new StockQuantityVm(99L, 4L, "n");
+
+        svc.createStockHistories(List.of(s), List.of(vm));
+
+        ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+        verify(stockHistoryRepository).saveAll(captor.capture());
+        List<StockHistory> saved = captor.getValue();
+        assertEquals(0, saved.size());
+    }
 }

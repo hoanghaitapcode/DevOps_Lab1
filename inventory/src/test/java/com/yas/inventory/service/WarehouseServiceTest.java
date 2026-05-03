@@ -57,6 +57,18 @@ class WarehouseServiceTest {
     }
 
     @Test
+    void getProductWarehouse_whenNoProductIds_returnsOriginalList() {
+        when(stockRepository.getProductIdsInWarehouse(3L)).thenReturn(List.of());
+        ProductInfoVm pv1 = new ProductInfoVm(2L, "n", "s", false);
+        when(productService.filterProducts("nm", "sku", List.of(), null)).thenReturn(List.of(pv1));
+
+        List<ProductInfoVm> out = svc.getProductWarehouse(3L, "nm", "sku", null);
+        assertEquals(1, out.size());
+        assertEquals(2L, out.get(0).id());
+        assertFalse(out.get(0).existInWh());
+    }
+
+    @Test
     void findById_returnsDetailVm() {
         Warehouse w = Warehouse.builder().id(5L).name("W").addressId(22L).build();
         when(warehouseRepository.findById(5L)).thenReturn(Optional.of(w));
@@ -69,10 +81,83 @@ class WarehouseServiceTest {
     }
 
     @Test
+    void findById_whenNotFound_throws() {
+        when(warehouseRepository.findById(5L)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> svc.findById(5L));
+    }
+
+    @Test
     void create_whenNameExists_throws() {
         WarehousePostVm post = new WarehousePostVm(null, "n", "c", "p", "a1", "a2", "ci", "z", 1L, 1L, 1L);
         when(warehouseRepository.existsByName("n")).thenReturn(true);
         assertThrows(DuplicatedException.class, () -> svc.create(post));
+    }
+
+    @Test
+    void create_whenValid_createsWarehouse() {
+        WarehousePostVm post = new WarehousePostVm(null, "n", "c", "p", "a1", "a2", "ci", "z", 1L, 1L, 1L);
+        when(warehouseRepository.existsByName("n")).thenReturn(false);
+        when(locationService.createAddress(any())).thenReturn(AddressVm.builder().id(77L).build());
+        when(warehouseRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Warehouse result = svc.create(post);
+
+        assertEquals("n", result.getName());
+        assertEquals(77L, result.getAddressId());
+    }
+
+    @Test
+    void update_whenNameExistsWithDifferentId_throws() {
+        Warehouse w = Warehouse.builder().id(9L).name("old").addressId(33L).build();
+        when(warehouseRepository.findById(9L)).thenReturn(Optional.of(w));
+        when(warehouseRepository.existsByNameWithDifferentId("n", 9L)).thenReturn(true);
+
+        WarehousePostVm post = new WarehousePostVm(null, "n", "c", "p", "a1", "a2", "ci", "z", 1L, 1L, 1L);
+        assertThrows(DuplicatedException.class, () -> svc.update(post, 9L));
+    }
+
+    @Test
+    void update_whenValid_updatesWarehouse() {
+        Warehouse w = Warehouse.builder().id(9L).name("old").addressId(33L).build();
+        when(warehouseRepository.findById(9L)).thenReturn(Optional.of(w));
+        when(warehouseRepository.existsByNameWithDifferentId("n", 9L)).thenReturn(false);
+
+        WarehousePostVm post = new WarehousePostVm(null, "n", "c", "p", "a1", "a2", "ci", "z", 1L, 1L, 1L);
+        svc.update(post, 9L);
+
+        assertEquals("n", w.getName());
+        verify(locationService).updateAddress(eq(33L), any());
+        verify(warehouseRepository).save(w);
+    }
+
+    @Test
+    void update_whenNotFound_throws() {
+        when(warehouseRepository.findById(9L)).thenReturn(Optional.empty());
+
+        WarehousePostVm post = new WarehousePostVm(null, "n", "c", "p", "a1", "a2", "ci", "z", 1L, 1L, 1L);
+        assertThrows(NotFoundException.class, () -> svc.update(post, 9L));
+    }
+
+    @Test
+    void delete_whenNotFound_throws() {
+        when(warehouseRepository.findById(9L)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> svc.delete(9L));
+    }
+
+    @Test
+    void getPageableWarehouses_mapsToListGetVm() {
+        Warehouse w1 = Warehouse.builder().id(1L).name("w1").addressId(1L).build();
+        Warehouse w2 = Warehouse.builder().id(2L).name("w2").addressId(2L).build();
+        var page = new org.springframework.data.domain.PageImpl<>(List.of(w1, w2),
+            org.springframework.data.domain.PageRequest.of(0, 2), 2);
+        when(warehouseRepository.findAll(any(org.springframework.data.domain.Pageable.class))).thenReturn(page);
+
+        var vm = svc.getPageableWarehouses(0, 2);
+        assertEquals(2, vm.warehouseContent().size());
+        assertEquals(2, vm.totalElements());
+        assertTrue(vm.isLast());
     }
 
     @Test

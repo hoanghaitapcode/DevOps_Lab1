@@ -4,6 +4,7 @@ import static com.yas.inventory.util.SecurityContextUtils.setUpSecurityContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -13,11 +14,14 @@ import com.yas.inventory.viewmodel.address.AddressDetailVm;
 import com.yas.inventory.viewmodel.address.AddressPostVm;
 import com.yas.inventory.viewmodel.address.AddressVm;
 import java.net.URI;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.http.HttpHeaders;
+import java.lang.reflect.Method;
 
 class LocationServiceTest {
 
@@ -70,7 +74,11 @@ class LocationServiceTest {
         RestClient.RequestHeadersUriSpec requestHeadersUriSpec = Mockito.mock(RestClient.RequestHeadersUriSpec.class);
         when(restClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(url)).thenReturn(requestHeadersUriSpec);
-        when(requestHeadersUriSpec.headers(any())).thenReturn(requestHeadersUriSpec);
+        Mockito.doAnswer(invocation -> {
+            Consumer<HttpHeaders> consumer = invocation.getArgument(0);
+            consumer.accept(new HttpHeaders());
+            return requestHeadersUriSpec;
+        }).when(requestHeadersUriSpec).headers(any());
         when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.body(AddressDetailVm.class))
             .thenReturn(addressDetail);
@@ -116,7 +124,11 @@ class LocationServiceTest {
         when(restClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(url)).thenReturn(requestBodyUriSpec);
 
-        when(requestBodyUriSpec.headers(any())).thenReturn(requestBodyUriSpec);
+        Mockito.doAnswer(invocation -> {
+            Consumer<HttpHeaders> consumer = invocation.getArgument(0);
+            consumer.accept(new HttpHeaders());
+            return requestBodyUriSpec;
+        }).when(requestBodyUriSpec).headers(any());
         when(requestBodyUriSpec.body(addressPost)).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.body(AddressVm.class)).thenReturn(address);
@@ -152,7 +164,11 @@ class LocationServiceTest {
         RestClient.RequestBodyUriSpec requestBodyUriSpec = mock(RestClient.RequestBodyUriSpec.class);
         when(restClient.put()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(url)).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.headers(any())).thenReturn(requestBodyUriSpec);
+        Mockito.doAnswer(invocation -> {
+            Consumer<HttpHeaders> consumer = invocation.getArgument(0);
+            consumer.accept(new HttpHeaders());
+            return requestBodyUriSpec;
+        }).when(requestBodyUriSpec).headers(any());
         when(requestBodyUriSpec.body(addressPostVm)).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.retrieve()).thenReturn(responseSpec);
 
@@ -169,10 +185,34 @@ class LocationServiceTest {
         RestClient.RequestHeadersUriSpec requestHeadersUriSpec = Mockito.mock(RestClient.RequestHeadersUriSpec.class);
         when(restClient.delete()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(url)).thenReturn(requestHeadersUriSpec);
-        when(requestHeadersUriSpec.headers(any())).thenReturn(requestHeadersUriSpec);
+        Mockito.doAnswer(invocation -> {
+            Consumer<HttpHeaders> consumer = invocation.getArgument(0);
+            consumer.accept(new HttpHeaders());
+            return requestHeadersUriSpec;
+        }).when(requestHeadersUriSpec).headers(any());
         when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
 
         assertDoesNotThrow(() -> locationService.deleteAddress(addressId));
+    }
+
+    @Test
+    void testFallbackMethods_rethrowThrowable() {
+        RuntimeException ex = new RuntimeException("boom");
+        assertThrows(RuntimeException.class, () -> invokePrivateFallback("handleAddressDetailFallback", ex));
+        assertThrows(RuntimeException.class, () -> invokePrivateFallback("handleAddressFallback", ex));
+    }
+
+    private Object invokePrivateFallback(String methodName, Throwable throwable) throws Exception {
+        Method method = LocationService.class.getDeclaredMethod(methodName, Throwable.class);
+        method.setAccessible(true);
+        try {
+            return method.invoke(locationService, throwable);
+        } catch (java.lang.reflect.InvocationTargetException ex) {
+            if (ex.getCause() instanceof Exception cause) {
+                throw cause;
+            }
+            throw ex;
+        }
     }
 
 }
