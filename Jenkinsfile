@@ -134,14 +134,12 @@ pipeline {
                         allowEmptyResults: true
                     )
                     
-                    // ── Upload Coverage Results & Fail logic ──
-                    jacoco(
-                        execPattern: '**/target/jacoco.exec',
-                        classPattern: '**/target/classes',
-                        sourcePattern: '**/src/main/java',
-                        inclusionPattern: '**/*.class',
-                        minimumLineCoverage: '70',
-                        changeBuildStatus: true
+                    // ── Upload Coverage Results & Quality Gate (Coverage Plugin) ──
+                    recordCoverage(
+                        tools: [[parser: 'JACOCO', pattern: '**/target/site/jacoco/jacoco.xml']],
+                        qualityGates: [
+                            [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'FAILED']
+                        ]
                     )
                 }
             }
