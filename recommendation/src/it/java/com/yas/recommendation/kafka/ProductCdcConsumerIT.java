@@ -23,7 +23,7 @@ import com.yas.recommendation.vector.product.query.RelatedProductQuery;
 import com.yas.recommendation.vector.product.service.ProductVectorSyncService;
 import com.yas.recommendation.viewmodel.ProductDetailVm;
 import com.yas.recommendation.viewmodel.RelatedProductVm;
-import common.kafka.CdcConsumerTest;
+import common.kafka.CdcConsumerIT;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
@@ -53,7 +53,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Import(KafkaConfiguration.class)
 @PropertySource("classpath:application.properties")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class ProductCdcConsumerTest extends CdcConsumerTest<ProductMsgKey, ProductCdcMessage> {
+public class ProductCdcConsumerIT extends CdcConsumerIT<ProductMsgKey, ProductCdcMessage> {
     public static final String STOREFRONT_PRODUCTS_PATH = "/storefront/products/detail/{id}";
     private static final String PRODUCT_NAME_UPDATE = "IPhone 14 Pro New";
     @Autowired
@@ -74,7 +74,7 @@ public class ProductCdcConsumerTest extends CdcConsumerTest<ProductMsgKey, Produ
     @Autowired
     private RelatedProductQuery relatedProductQuery;
 
-    public ProductCdcConsumerTest() {
+    public ProductCdcConsumerIT() {
         super(ProductMsgKey.class, ProductCdcMessage.class, "dbproduct.public.product");
     }
 

@@ -1,9 +1,11 @@
 package com.yas.inventory.controller;
 
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -172,12 +174,16 @@ class WarehouseControllerTest {
             .build();
 
         String request = objectWriter.writeValueAsString(warehousePostVm);
-        given(warehouseService.create(warehousePostVm)).willReturn(new Warehouse());
+        Warehouse created = Warehouse.builder().id(99L).name("name").addressId(1L).build();
+        given(warehouseService.create(warehousePostVm)).willReturn(created);
 
         this.mockMvc.perform(post("/backoffice/warehouses")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request))
-            .andExpect(status().isCreated());
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id").value(99L))
+            .andExpect(jsonPath("$.name").value("name"))
+            .andExpect(header().string("Location", "http://localhost/warehouses/99"));
     }
 
     @Test
@@ -339,6 +345,13 @@ class WarehouseControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testDeleteWarehouse_whenValid_thenReturn204() throws Exception {
+        this.mockMvc.perform(delete("/backoffice/warehouses/1")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNoContent());
     }
 
 }

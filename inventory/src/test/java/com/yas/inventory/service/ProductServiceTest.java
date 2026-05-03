@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -16,11 +17,13 @@ import com.yas.inventory.viewmodel.product.ProductQuantityPostVm;
 import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
@@ -37,6 +40,20 @@ class ProductServiceTest {
     private RestClient.ResponseSpec responseSpec;
 
     private static final String PRODUCT_URL = "http://api.yas.local/product";
+
+    private static class TestProductService extends ProductService {
+        TestProductService(RestClient restClient, ServiceUrlConfig serviceUrlConfig) {
+            super(restClient, serviceUrlConfig);
+        }
+
+        public ProductInfoVm callFallback(Throwable t) throws Throwable {
+            return handleProductInfoFallback(t);
+        }
+
+        public List<ProductInfoVm> callListFallback(Throwable t) throws Throwable {
+            return handleProductInfoListFallback(t);
+        }
+    }
 
     @BeforeEach
     void setUp() {
@@ -63,7 +80,11 @@ class ProductServiceTest {
             = Mockito.mock(RestClient.RequestHeadersUriSpec.class);
         when(restClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(url)).thenReturn(requestHeadersUriSpec);
-        when(requestHeadersUriSpec.headers(any())).thenReturn(requestHeadersUriSpec);
+        Mockito.doAnswer(invocation -> {
+            Consumer<HttpHeaders> consumer = invocation.getArgument(0);
+            consumer.accept(new HttpHeaders());
+            return requestHeadersUriSpec;
+        }).when(requestHeadersUriSpec).headers(any());
         when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
 
         ProductInfoVm productInfoVm = new ProductInfoVm(productId,
@@ -102,7 +123,11 @@ class ProductServiceTest {
             = Mockito.mock(RestClient.RequestHeadersUriSpec.class);
         when(restClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(url)).thenReturn(requestHeadersUriSpec);
-        when(requestHeadersUriSpec.headers(any())).thenReturn(requestHeadersUriSpec);
+        Mockito.doAnswer(invocation -> {
+            Consumer<HttpHeaders> consumer = invocation.getArgument(0);
+            consumer.accept(new HttpHeaders());
+            return requestHeadersUriSpec;
+        }).when(requestHeadersUriSpec).headers(any());
         when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
         ResponseEntity responseEntity = mock(ResponseEntity.class);
         ProductInfoVm productInfoVm = new ProductInfoVm(1L, productName, productSku, true);
@@ -115,6 +140,48 @@ class ProductServiceTest {
         assertFalse(result.isEmpty());
         assertEquals(1, result.size());
         assertEquals(productName, result.getFirst().name());
+    }
+
+    @Test
+    void testFilterProducts_whenNoProductIds_returnListProductInfoVm() {
+        String productName = "ProductName";
+        String productSku = "ProductSKU";
+        List<Long> productIds = List.of();
+        FilterExistInWhSelection selection = FilterExistInWhSelection.NO;
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("name", productName);
+        params.add("sku", productSku);
+        params.add("selection", selection.name());
+
+        final URI url = UriComponentsBuilder
+            .fromUriString(PRODUCT_URL)
+            .path("/backoffice/products/for-warehouse")
+            .queryParams(params)
+            .build()
+            .toUri();
+
+        RestClient.RequestHeadersUriSpec requestHeadersUriSpec
+            = Mockito.mock(RestClient.RequestHeadersUriSpec.class);
+        when(restClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(url)).thenReturn(requestHeadersUriSpec);
+        Mockito.doAnswer(invocation -> {
+            Consumer<HttpHeaders> consumer = invocation.getArgument(0);
+            consumer.accept(new HttpHeaders());
+            return requestHeadersUriSpec;
+        }).when(requestHeadersUriSpec).headers(any());
+        when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
+        ResponseEntity responseEntity = mock(ResponseEntity.class);
+        ProductInfoVm productInfoVm = new ProductInfoVm(1L, productName, productSku, true);
+        when(responseSpec.toEntity(new ParameterizedTypeReference<List<ProductInfoVm>>() {}))
+            .thenReturn(responseEntity);
+        when(responseEntity.getBody()).thenReturn(List.of(productInfoVm));
+
+        List<ProductInfoVm> result = productService.filterProducts(productName, productSku, productIds, selection);
+
+        assertFalse(result.isEmpty());
+        assertEquals(1, result.size());
+        assertEquals(productSku, result.getFirst().sku());
     }
 
     @Test
@@ -131,9 +198,20 @@ class ProductServiceTest {
         RestClient.RequestBodyUriSpec requestBodyUriSpec = mock(RestClient.RequestBodyUriSpec.class);
         when(restClient.put()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(url)).thenReturn(requestBodyUriSpec);
-        when(requestBodyUriSpec.headers(any())).thenReturn(requestBodyUriSpec);
+        Mockito.doAnswer(invocation -> {
+            Consumer<HttpHeaders> consumer = invocation.getArgument(0);
+            consumer.accept(new HttpHeaders());
+            return requestBodyUriSpec;
+        }).when(requestBodyUriSpec).headers(any());
         when(requestBodyUriSpec.body(productQuantityPostVms)).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.retrieve()).thenReturn(responseSpec);
         assertDoesNotThrow(() -> productService.updateProductQuantity(productQuantityPostVms));
+    }
+
+    @Test
+    void testFallbackMethods_rethrowThrowable() {
+        TestProductService testService = new TestProductService(restClient, serviceUrlConfig);
+        assertThrows(IllegalStateException.class, () -> testService.callFallback(new IllegalStateException("boom")));
+        assertThrows(RuntimeException.class, () -> testService.callListFallback(new RuntimeException("boom2")));
     }
 }

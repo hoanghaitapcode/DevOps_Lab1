@@ -15,9 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.jetbrains.annotations.NotNull;
-import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
-import static org.mockito.Mockito.when;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,9 +41,9 @@ import org.mockito.MockitoAnnotations;
  * @param <M> Message Type
  */
 @Getter
-public abstract class CdcConsumerTest<K, M> {
+public abstract class CdcConsumerIT<K, M> {
 
-    private final Logger logger = LoggerFactory.getLogger(CdcConsumerTest.class);
+    private final Logger logger = LoggerFactory.getLogger(CdcConsumerIT.class);
 
     private final Class<K> keyType;
     private final Class<M> messageType;
@@ -66,7 +64,7 @@ public abstract class CdcConsumerTest<K, M> {
 
     private KafkaTemplate<K, M> kafkaTemplate;
 
-    public CdcConsumerTest(Class<K> keyType, Class<M> messageType, String topicEvent) {
+    public CdcConsumerIT(Class<K> keyType, Class<M> messageType, String topicEvent) {
         Assert.notNull(topicEvent, "CDC topic must not be null");
         Assert.notNull(messageType, "Message type must not be null");
         Assert.notNull(keyType, "Key type must not be null");

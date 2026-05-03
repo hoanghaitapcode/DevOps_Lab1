@@ -3,3 +3,9 @@ package com.yas.inventory.constant;
 public class TestConstants {
     public static final String CIRCUIT_BREAKER_NAME = "restCircuitBreaker";
 }
+// Haha
+
+//kajsdlfkadlsflksd
+//jladskfjlasdj
+//adsfjldsfjs
+//dj
