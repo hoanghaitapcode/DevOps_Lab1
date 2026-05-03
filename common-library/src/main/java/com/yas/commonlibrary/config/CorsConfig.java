@@ -11,7 +11,7 @@ public class CorsConfig {
 
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
-
+    //shiba
     @Bean
     public WebMvcConfigurer corsConfigure() {
         return new WebMvcConfigurer() {
