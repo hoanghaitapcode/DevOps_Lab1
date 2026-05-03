@@ -13,7 +13,7 @@ import com.yas.media.model.Media;
 import com.yas.media.repository.FileSystemRepository;
 import com.yas.media.repository.MediaRepository;
 import com.yas.media.service.MediaService;
-import com.yas.media.viewmodel.MediaPostVm;
+import com.yas.media.viewmodel.MediaPostVm;//shiba
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
