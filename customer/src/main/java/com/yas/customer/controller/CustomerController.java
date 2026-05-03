@@ -57,6 +57,7 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.getCustomerByEmail(email));
     }
 
+    //SHIBA
     @GetMapping("/backoffice/customers/profile/{id}")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Ok",
