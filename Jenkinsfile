@@ -135,10 +135,11 @@ pipeline {
                     )
                     
                     // ── Upload Coverage Results & Quality Gate (Coverage Plugin) ──
+                    // FIX: criticality của Coverage plugin là 'FAILURE' hoặc 'UNSTABLE'
                     recordCoverage(
                         tools: [[parser: 'JACOCO', pattern: '**/target/site/jacoco/jacoco.xml']],
                         qualityGates: [
-                            [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'FAILED']
+                            [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'FAILURE']
                         ]
                     )
                 }
