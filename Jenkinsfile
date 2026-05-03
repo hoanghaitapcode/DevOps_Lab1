@@ -85,6 +85,17 @@ pipeline {
         }
 
         // =====================================================================
+        // STAGE: Gitleaks Scan
+        // =====================================================================
+        stage('Gitleaks Scan') {
+            steps {
+                echo "🔍 Scanning for secrets with Gitleaks..."
+                // Dùng Docker để chạy gitleaks nhằm tự động cô lập và không cần cài đặt binary trên node
+                sh "docker run --rm -v ${env.WORKSPACE}:/path zricethezav/gitleaks:latest detect --source='/path' -v"
+            }
+        }
+
+        // =====================================================================
         // STAGE 2: Build common-library trước (dependency chung)
         // =====================================================================
         stage('Build Common Library') {
