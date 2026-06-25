@@ -130,7 +130,7 @@ pipeline {
                 always {
                     // ── Upload JUnit Test Results ──
                     junit(
-                        testResults: '*/target/surefire-reports/TEST-.xml, */target/failsafe-reports/TEST-.xml',
+                        testResults: '**/target/surefire-reports/TEST-*.xml, **/target/failsafe-reports/TEST-*.xml',
                         allowEmptyResults: true
                     )
                     
