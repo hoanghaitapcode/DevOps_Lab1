@@ -22,6 +22,9 @@ pipeline {
 
         // ── Danh sách Java microservices (các thư mục gốc chứa pom.xml) ──
         JAVA_SERVICES = 'cart,customer,inventory,location,media,order,payment,payment-paypal,product,promotion,rating,search,storefront-bff,backoffice-bff,tax,webhook,sampledata,recommendation,delivery'
+
+        // Dockerhub username
+        DOCKERHUB_USER = 'doubleho'
     }
 
     options {
@@ -118,7 +121,7 @@ pipeline {
                 always {
                     // ── Upload JUnit Test Results ──
                     junit(
-                        testResults: '**/target/surefire-reports/TEST-*.xml, **/target/failsafe-reports/TEST-*.xml',
+                        testResults: '**/target/surefire-reports/TEST-*.xml,**/target/failsafe-reports/TEST-*.xml',
                         allowEmptyResults: true
                     )
                     // ĐÃ XÓA LỆNH jacoco() GÂY LỖI Ở ĐÂY
@@ -139,6 +142,46 @@ pipeline {
                     for (svc in services) {
                         echo "🏗️  Building: ${svc}"
                         sh "mvn package -pl ${svc} -am -DskipTests -q"
+                    }
+                }
+            }
+        }
+
+        stage('Docker Build and Push') {
+            when {
+                expression { env.CHANGED_SERVICES?.trim() }
+            }
+            steps {
+                script {
+                    def commitSha = sh(script: 'git rev-parse --short=12 HEAD', returnStdout: true).trim()
+                    def branchAlias = env.BRANCH_NAME.replaceAll('[^A-Za-z0-9_.-]', '-')
+                    def services = env.CHANGED_SERVICES.split(',')
+
+                    withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+
+                        for (svc in services) {
+                            def image = "docker.io/${env.DOCKERHUB_USER}/yas-${svc}"
+                            echo "Building ${image}:${commitSha}"
+                            sh """
+                                docker build -t ${image}:${commitSha} -t ${image}:${branchAlias} ./${svc}
+                                docker push ${image}:${commitSha}
+                                docker push ${image}:${branchAlias}
+                            """
+
+                            if (env.BRANCH_NAME == 'main') {
+                                sh """
+                                    docker tag ${image}:${commitSha} ${image}:main
+                                    docker push ${image}:main
+                                """
+                            }
+                        }
+
+                        sh 'docker logout'
                     }
                 }
             }
