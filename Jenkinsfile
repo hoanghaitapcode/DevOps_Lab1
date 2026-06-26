@@ -22,7 +22,7 @@ pipeline {
 
         // ── Danh sách Java microservices (các thư mục gốc chứa pom.xml) ──
         JAVA_SERVICES = 'cart,customer,inventory,location,media,order,payment,payment-paypal,product,promotion,rating,search,storefront-bff,backoffice-bff,tax,webhook,sampledata,recommendation,delivery'
-
+        UI_SERVICES = 'storefront,backoffice'
         // Dockerhub username
         DOCKERHUB_USER = 'doubleho'
     }
