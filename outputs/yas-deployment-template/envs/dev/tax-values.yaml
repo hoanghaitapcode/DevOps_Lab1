@@ -1,0 +1,20 @@
+backend:
+  image:
+    repository: docker.io/doubleho/yas-tax
+    tag: main
+  livenessProbe:
+    initialDelaySeconds: 90
+    periodSeconds: 10
+    failureThreshold: 12
+    httpGet:
+      path: /actuator/health/liveness
+      port: metric
+  readinessProbe:
+    initialDelaySeconds: 90
+    periodSeconds: 10
+    failureThreshold: 12
+    httpGet:
+      path: /actuator/health/readiness
+      port: metric
+  serviceMonitor:
+    enabled: false

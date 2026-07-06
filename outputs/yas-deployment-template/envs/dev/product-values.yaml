@@ -1,0 +1,6 @@
+backend:
+  image:
+    repository: docker.io/doubleho/yas-product
+    tag: main
+  serviceMonitor:
+    enabled: false

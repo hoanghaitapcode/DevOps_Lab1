@@ -1,0 +1,4 @@
+ui:
+  image:
+    repository: docker.io/doubleho/yas-backoffice
+    tag: main

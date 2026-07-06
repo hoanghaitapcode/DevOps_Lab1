@@ -1,0 +1,6 @@
+backend:
+  image:
+    repository: docker.io/doubleho/yas-media
+    tag: main
+  serviceMonitor:
+    enabled: false

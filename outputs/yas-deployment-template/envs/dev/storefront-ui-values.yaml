@@ -1,0 +1,4 @@
+ui:
+  image:
+    repository: docker.io/doubleho/yas-storefront
+    tag: main

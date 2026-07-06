@@ -1,0 +1,6 @@
+backend:
+  image:
+    repository: docker.io/doubleho/yas-storefront-bff
+    tag: main
+  serviceMonitor:
+    enabled: false

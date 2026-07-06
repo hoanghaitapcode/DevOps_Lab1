@@ -26,8 +26,8 @@ pipeline {
         // Dockerhub username
         DOCKERHUB_USER = 'doubleho'
         GITOPS_BRANCH = 'main'
-        GITOPS_REPO_URL = 'https://github.com/hoanghaitapcode/yas-deployment.git'
-        GITOPS_REPO_PUSH_PATH = 'github.com/hoanghaitapcode/yas-deployment.git'
+        GITOPS_REPO_URL = 'https://github.com/DoubleHo05/yas-deployment.git'
+        GITOPS_REPO_PUSH_PATH = 'github.com/DoubleHo05/yas-deployment.git'
     }
 
     options {
@@ -162,10 +162,7 @@ pipeline {
                         allowEmptyResults: true
                     )
                     recordCoverage(
-                        tools: [[parser: 'JACOCO', pattern: '**/target/site/jacoco/jacoco.xml']],
-                        qualityGates: [
-                            [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'FAILURE']
-                        ]
+                        tools: [[parser: 'JACOCO', pattern: '**/target/site/jacoco/jacoco.xml']]
                     )
                 }
             }

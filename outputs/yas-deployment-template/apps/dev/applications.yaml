@@ -1,0 +1,428 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-configuration-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+    targetRevision: main
+    path: k8s/charts/yas-configuration
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-product-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/product
+      helm:
+        valueFiles:
+          - $values/envs/dev/product-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-cart-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/cart
+      helm:
+        valueFiles:
+          - $values/envs/dev/cart-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-order-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/order
+      helm:
+        valueFiles:
+          - $values/envs/dev/order-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-customer-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/customer
+      helm:
+        valueFiles:
+          - $values/envs/dev/customer-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-inventory-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/inventory
+      helm:
+        valueFiles:
+          - $values/envs/dev/inventory-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-tax-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/tax
+      helm:
+        valueFiles:
+          - $values/envs/dev/tax-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-media-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/media
+      helm:
+        valueFiles:
+          - $values/envs/dev/media-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-search-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/search
+      helm:
+        valueFiles:
+          - $values/envs/dev/search-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-storefront-bff-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/storefront-bff
+      helm:
+        valueFiles:
+          - $values/envs/dev/storefront-bff-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-storefront-ui-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/storefront-ui
+      helm:
+        valueFiles:
+          - $values/envs/dev/storefront-ui-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-backoffice-bff-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/backoffice-bff
+      helm:
+        valueFiles:
+          - $values/envs/dev/backoffice-bff-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-backoffice-ui-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/backoffice-ui
+      helm:
+        valueFiles:
+          - $values/envs/dev/backoffice-ui-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-swagger-ui-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/swagger-ui
+      helm:
+        valueFiles:
+          - $values/envs/dev/swagger-ui-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yas-sampledata-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/hoanghaitapcode/DevOps_Lab1.git
+      targetRevision: main
+      path: k8s/charts/sampledata
+      helm:
+        valueFiles:
+          - $values/envs/dev/sampledata-values.yaml
+    - repoURL: https://github.com/DoubleHo05/yas-deployment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

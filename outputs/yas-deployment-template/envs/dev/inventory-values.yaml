@@ -1,0 +1,6 @@
+backend:
+  image:
+    repository: docker.io/doubleho/yas-inventory
+    tag: main
+  serviceMonitor:
+    enabled: false
