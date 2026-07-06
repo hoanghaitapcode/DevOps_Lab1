@@ -105,6 +105,16 @@ pipeline {
         }
 
         // =====================================================================
+        // STAGE: Gitleaks Scan
+        // =====================================================================
+        stage('Gitleaks Scan') {
+            steps {
+                echo "🔍 Scanning for secrets with Gitleaks..."
+                sh "docker run --rm -v ${env.WORKSPACE}:/repo zricethezav/gitleaks:v8.18.4 detect --source=/repo --config=/repo/gitleaks.toml --verbose"
+            }
+        }
+
+        // =====================================================================
         // STAGE 2: Build common-library trước (dependency chung)
         // =====================================================================
         stage('Build Common Library') {
@@ -141,7 +151,12 @@ pipeline {
                         testResults: '**/target/surefire-reports/TEST-*.xml,**/target/failsafe-reports/TEST-*.xml',
                         allowEmptyResults: true
                     )
-                    // ĐÃ XÓA LỆNH jacoco() GÂY LỖI Ở ĐÂY
+                    recordCoverage(
+                        tools: [[parser: 'JACOCO', pattern: '**/target/site/jacoco/jacoco.xml']],
+                        qualityGates: [
+                            [threshold: 70.0, metric: 'LINE', baseline: 'PROJECT', criticality: 'FAILURE']
+                        ]
+                    )
                 }
             }
         }
