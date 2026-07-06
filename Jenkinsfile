@@ -367,11 +367,11 @@ pipeline {
                         }
 
                         def hasChanges = sh(
-                            script: 'git diff --cached --quiet; echo $?',
-                            returnStdout: true
-                        ).trim()
+                            script: 'git diff --cached --quiet',
+                            returnStatus: true
+                        )
 
-                        if (hasChanges == '0') {
+                        if (hasChanges == 0) {
                             echo "No GitOps manifest changes to commit."
                         } else {
                             sh "git commit -m 'chore(gitops): update ${targetEnv} image tags to ${imageTag} [skip ci]'"
