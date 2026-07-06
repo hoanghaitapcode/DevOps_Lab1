@@ -25,6 +25,9 @@ pipeline {
         UI_SERVICES = 'storefront,backoffice'
         // Dockerhub username
         DOCKERHUB_USER = 'doubleho'
+        GITOPS_BRANCH = 'main'
+        GITOPS_REPO_URL = 'https://github.com/hoanghaitapcode/yas-deployment.git'
+        GITOPS_REPO_PUSH_PATH = 'github.com/hoanghaitapcode/yas-deployment.git'
     }
 
     options {
@@ -202,6 +205,13 @@ pipeline {
                                     docker push ${image}:main
                                 """
                             }
+
+                            if (env.TAG_NAME?.trim()) {
+                                sh """
+                                    docker tag ${image}:${commitSha} ${image}:${env.TAG_NAME}
+                                    docker push ${image}:${env.TAG_NAME}
+                                """
+                            }
                         }
 
                         sh 'docker logout'
@@ -276,6 +286,87 @@ pipeline {
                                          --org=\${SNYK_ORG:-''} \
                                          || true
                         """
+                    }
+                }
+            }
+        }
+
+        stage('Update GitOps Manifests') {
+            when {
+                expression {
+                    env.CHANGED_SERVICES?.trim() &&
+                    (env.BRANCH_NAME == 'main' || env.TAG_NAME?.trim())
+                }
+            }
+            steps {
+                script {
+                    def commitSha = sh(script: 'git rev-parse --short=12 HEAD', returnStdout: true).trim()
+                    def targetEnv = env.TAG_NAME?.trim() ? 'staging' : 'dev'
+                    def imageTag = env.TAG_NAME?.trim() ? env.TAG_NAME.trim() : commitSha
+                    def services = env.CHANGED_SERVICES.split(',')
+
+                    def valuesFile = { svc ->
+                        if (svc == 'storefront') {
+                            return 'storefront-ui-values.yaml'
+                        }
+                        if (svc == 'backoffice') {
+                            return 'backoffice-ui-values.yaml'
+                        }
+                        def supported = [
+                            'product', 'cart', 'order', 'customer', 'inventory', 'tax',
+                            'media', 'search', 'storefront-bff', 'backoffice-bff',
+                            'sampledata'
+                        ]
+                        if (supported.contains(svc)) {
+                            return "${svc}-values.yaml"
+                        }
+                        return ''
+                    }
+
+                    dir('yas-deployment') {
+                        deleteDir()
+                        sh """
+                            git clone --branch ${GITOPS_BRANCH} ${GITOPS_REPO_URL} .
+                            git config user.email "jenkins@yas.local"
+                            git config user.name "jenkins"
+                        """
+
+                        for (svc in services) {
+                            def fileName = valuesFile(svc)
+                            if (!fileName) {
+                                echo "Skip GitOps update for unsupported service: ${svc}"
+                                continue
+                            }
+
+                            def filePath = "envs/${targetEnv}/${fileName}"
+                            echo "Updating ${filePath} -> tag ${imageTag}"
+                            sh "sed -i 's/^    tag:.*/    tag: ${imageTag}/' ${filePath}"
+                            sh "git add ${filePath}"
+                        }
+
+                        def hasChanges = sh(
+                            script: 'git diff --cached --quiet; echo $?',
+                            returnStdout: true
+                        ).trim()
+
+                        if (hasChanges == '0') {
+                            echo "No GitOps manifest changes to commit."
+                        } else {
+                            sh "git commit -m 'chore(gitops): update ${targetEnv} image tags to ${imageTag} [skip ci]'"
+                            withCredentials([usernamePassword(
+                                credentialsId: 'github-push-token',
+                                usernameVariable: 'GIT_USER',
+                                passwordVariable: 'GIT_TOKEN'
+                            )]) {
+                                sh """
+                                    set +x
+                                    git remote set-url origin https://\$GIT_USER:\$GIT_TOKEN@${GITOPS_REPO_PUSH_PATH}
+                                    set -x
+                                    git push origin HEAD:${GITOPS_BRANCH}
+                                    git remote set-url origin ${GITOPS_REPO_URL}
+                                """
+                            }
+                        }
                     }
                 }
             }
