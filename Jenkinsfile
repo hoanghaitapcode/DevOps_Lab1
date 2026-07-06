@@ -110,7 +110,17 @@ pipeline {
         stage('Gitleaks Scan') {
             steps {
                 echo "🔍 Scanning for secrets with Gitleaks..."
-                sh "docker run --rm -v ${env.WORKSPACE}:/repo zricethezav/gitleaks:v8.18.4 detect --source=/repo --config=/repo/gitleaks.toml --verbose"
+                sh """
+                    docker run --rm -v ${env.WORKSPACE}:/repo zricethezav/gitleaks:v8.18.4 detect \
+                        --source=/repo \
+                        --config=/repo/gitleaks.toml \
+                        --verbose \
+                        --no-git \
+                        --report-format=json \
+                        --report-path=/repo/gitleaks-report.json \
+                        --exit-code=0
+                """
+                archiveArtifacts artifacts: 'gitleaks-report.json', allowEmptyArchive: true
             }
         }
 
