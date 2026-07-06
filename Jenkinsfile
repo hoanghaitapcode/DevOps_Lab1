@@ -22,9 +22,12 @@ pipeline {
 
         // ── Danh sách Java microservices (các thư mục gốc chứa pom.xml) ──
         JAVA_SERVICES = 'cart,customer,inventory,location,media,order,payment,payment-paypal,product,promotion,rating,search,storefront-bff,backoffice-bff,tax,webhook,sampledata,recommendation,delivery'
-
+        UI_SERVICES = 'storefront,backoffice'
         // Dockerhub username
         DOCKERHUB_USER = 'doubleho'
+        GITOPS_BRANCH = 'main'
+        GITOPS_REPO_URL = 'https://github.com/DoubleHo05/yas-deployment.git'
+        GITOPS_REPO_PUSH_PATH = 'github.com/DoubleHo05/yas-deployment.git'
     }
 
     options {
@@ -58,32 +61,66 @@ pipeline {
 
                     echo "📂 Changed files:\n${changedFiles.join('\n')}"
 
-                    def allServices = env.JAVA_SERVICES.split(',')
-                    def changedServices = []
+                    def javaServices = env.JAVA_SERVICES.split(',')
+                    def uiServices = env.UI_SERVICES.split(',')
+                    def changedJavaServices = []
+                    def changedUiServices = []
 
                     def buildAll = changedFiles.any { file ->
                         file == 'pom.xml' || file.startsWith('common-library/')
                     }
 
                     if (buildAll) {
-                        changedServices = allServices.toList()
-                        echo "⚠️  Root pom.xml hoặc common-library thay đổi → Build TẤT CẢ services"
+                        changedJavaServices = javaServices.toList()
+                        echo "⚠️  Root pom.xml hoặc common-library thay đổi → Build TẤT CẢ Java services"
                     } else {
-                        for (service in allServices) {
+                        for (service in javaServices) {
                             if (changedFiles.any { it.startsWith("${service}/") }) {
-                                changedServices.add(service)
+                                changedJavaServices.add(service)
+                            }
+                        }
+
+                        for (service in uiServices) {
+                            if (changedFiles.any { it.startsWith("${service}/") }) {
+                                changedUiServices.add(service)
                             }
                         }
                     }
 
+                    def changedServices = changedJavaServices + changedUiServices
+                    env.CHANGED_JAVA_SERVICES = changedJavaServices.join(',')
+                    env.CHANGED_UI_SERVICES = changedUiServices.join(',')
+
                     if (changedServices.isEmpty()) {
-                        echo "✅ Không có Java service nào thay đổi. Skip build."
+                        echo "✅ Không có Java/UI service nào thay đổi. Skip build."
                         env.CHANGED_SERVICES = ''
                     } else {
                         env.CHANGED_SERVICES = changedServices.join(',')
                         echo "🔨 Services cần build: ${env.CHANGED_SERVICES}"
+                        echo "☕ Java services: ${env.CHANGED_JAVA_SERVICES ?: 'none'}"
+                        echo "🖥️ UI services: ${env.CHANGED_UI_SERVICES ?: 'none'}"
                     }
                 }
+            }
+        }
+
+        // =====================================================================
+        // STAGE: Gitleaks Scan
+        // =====================================================================
+        stage('Gitleaks Scan') {
+            steps {
+                echo "🔍 Scanning for secrets with Gitleaks..."
+                sh """
+                    docker run --rm -v ${env.WORKSPACE}:/repo zricethezav/gitleaks:v8.18.4 detect \
+                        --source=/repo \
+                        --config=/repo/gitleaks.toml \
+                        --verbose \
+                        --no-git \
+                        --report-format=json \
+                        --report-path=/repo/gitleaks-report.json \
+                        --exit-code=0
+                """
+                archiveArtifacts artifacts: 'gitleaks-report.json', allowEmptyArchive: true
             }
         }
 
@@ -92,7 +129,7 @@ pipeline {
         // =====================================================================
         stage('Build Common Library') {
             when {
-                expression { env.CHANGED_SERVICES?.trim() }
+                expression { env.CHANGED_JAVA_SERVICES?.trim() }
             }
             steps {
                 echo "📦 Building common-library (dependency dùng chung)..."
@@ -105,11 +142,11 @@ pipeline {
         // =====================================================================
         stage('Test') {
             when {
-                expression { env.CHANGED_SERVICES?.trim() }
+                expression { env.CHANGED_JAVA_SERVICES?.trim() }
             }
             steps {
                 script {
-                    def services = env.CHANGED_SERVICES.split(',')
+                    def services = env.CHANGED_JAVA_SERVICES.split(',')
                     for (svc in services) {
                         echo "🧪 Testing: ${svc}"
                         // Chạy Unit Test (bỏ qua Integration Test để tránh lỗi DB)
@@ -124,7 +161,9 @@ pipeline {
                         testResults: '**/target/surefire-reports/TEST-*.xml,**/target/failsafe-reports/TEST-*.xml',
                         allowEmptyResults: true
                     )
-                    // ĐÃ XÓA LỆNH jacoco() GÂY LỖI Ở ĐÂY
+                    recordCoverage(
+                        tools: [[parser: 'JACOCO', pattern: '**/target/site/jacoco/jacoco.xml']]
+                    )
                 }
             }
         }
@@ -134,11 +173,11 @@ pipeline {
         // =====================================================================
         stage('Build') {
             when {
-                expression { env.CHANGED_SERVICES?.trim() }
+                expression { env.CHANGED_JAVA_SERVICES?.trim() }
             }
             steps {
                 script {
-                    def services = env.CHANGED_SERVICES.split(',')
+                    def services = env.CHANGED_JAVA_SERVICES.split(',')
                     for (svc in services) {
                         echo "🏗️  Building: ${svc}"
                         sh "mvn package -pl ${svc} -am -DskipTests -q"
@@ -156,6 +195,15 @@ pipeline {
                     def commitSha = sh(script: 'git rev-parse --short=12 HEAD', returnStdout: true).trim()
                     def branchAlias = env.BRANCH_NAME.replaceAll('[^A-Za-z0-9_.-]', '-')
                     def services = env.CHANGED_SERVICES.split(',')
+                    def imageName = { svc ->
+                        if (svc == 'storefront') {
+                            return 'yas-storefront'
+                        }
+                        if (svc == 'backoffice') {
+                            return 'yas-backoffice'
+                        }
+                        return "yas-${svc}"
+                    }
 
                     withCredentials([usernamePassword(
                         credentialsId: 'dockerhub-credentials',
@@ -165,7 +213,7 @@ pipeline {
                         sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
 
                         for (svc in services) {
-                            def image = "docker.io/${env.DOCKERHUB_USER}/yas-${svc}"
+                            def image = "docker.io/${env.DOCKERHUB_USER}/${imageName(svc)}"
                             echo "Building ${image}:${commitSha}"
                             sh """
                                 docker build -t ${image}:${commitSha} -t ${image}:${branchAlias} ./${svc}
@@ -177,6 +225,13 @@ pipeline {
                                 sh """
                                     docker tag ${image}:${commitSha} ${image}:main
                                     docker push ${image}:main
+                                """
+                            }
+
+                            if (env.TAG_NAME?.trim()) {
+                                sh """
+                                    docker tag ${image}:${commitSha} ${image}:${env.TAG_NAME}
+                                    docker push ${image}:${env.TAG_NAME}
                                 """
                             }
                         }
@@ -192,11 +247,11 @@ pipeline {
         // =====================================================================
         stage('SonarQube Analysis') {
             when {
-                expression { env.CHANGED_SERVICES?.trim() }
+                expression { env.CHANGED_JAVA_SERVICES?.trim() }
             }
             steps {
                 script {
-                    def services = env.CHANGED_SERVICES.split(',')
+                    def services = env.CHANGED_JAVA_SERVICES.split(',')
                     for (svc in services) {
                         echo "🔍 SonarQube scanning: ${svc}"
                         withSonarQubeEnv('SonarCloud') {  
@@ -220,7 +275,7 @@ pipeline {
         // =====================================================================
         stage('Quality Gate') {
             when {
-                expression { env.CHANGED_SERVICES?.trim() }
+                expression { env.CHANGED_JAVA_SERVICES?.trim() }
             }
             steps {
                 echo "⏳ Waiting for SonarQube Quality Gate..."
@@ -235,11 +290,11 @@ pipeline {
         // =====================================================================
         stage('Snyk Security Scan') {
             when {
-                expression { env.CHANGED_SERVICES?.trim() }
+                expression { env.CHANGED_JAVA_SERVICES?.trim() }
             }
             steps {
                 script {
-                    def services = env.CHANGED_SERVICES.split(',')
+                    def services = env.CHANGED_JAVA_SERVICES.split(',')
                     for (svc in services) {
                         echo "🛡️  Snyk scanning: ${svc}"
                         sh """
@@ -253,6 +308,87 @@ pipeline {
                                          --org=\${SNYK_ORG:-''} \
                                          || true
                         """
+                    }
+                }
+            }
+        }
+
+        stage('Update GitOps Manifests') {
+            when {
+                expression {
+                    env.CHANGED_SERVICES?.trim() &&
+                    (env.BRANCH_NAME == 'main' || env.TAG_NAME?.trim())
+                }
+            }
+            steps {
+                script {
+                    def commitSha = sh(script: 'git rev-parse --short=12 HEAD', returnStdout: true).trim()
+                    def targetEnv = env.TAG_NAME?.trim() ? 'staging' : 'dev'
+                    def imageTag = env.TAG_NAME?.trim() ? env.TAG_NAME.trim() : commitSha
+                    def services = env.CHANGED_SERVICES.split(',')
+
+                    def valuesFile = { svc ->
+                        if (svc == 'storefront') {
+                            return 'storefront-ui-values.yaml'
+                        }
+                        if (svc == 'backoffice') {
+                            return 'backoffice-ui-values.yaml'
+                        }
+                        def supported = [
+                            'product', 'cart', 'order', 'customer', 'inventory', 'tax',
+                            'media', 'search', 'storefront-bff', 'backoffice-bff',
+                            'sampledata'
+                        ]
+                        if (supported.contains(svc)) {
+                            return "${svc}-values.yaml"
+                        }
+                        return ''
+                    }
+
+                    dir('yas-deployment') {
+                        deleteDir()
+                        sh """
+                            git clone --branch ${GITOPS_BRANCH} ${GITOPS_REPO_URL} .
+                            git config user.email "jenkins@yas.local"
+                            git config user.name "jenkins"
+                        """
+
+                        for (svc in services) {
+                            def fileName = valuesFile(svc)
+                            if (!fileName) {
+                                echo "Skip GitOps update for unsupported service: ${svc}"
+                                continue
+                            }
+
+                            def filePath = "envs/${targetEnv}/${fileName}"
+                            echo "Updating ${filePath} -> tag ${imageTag}"
+                            sh "sed -i 's/^    tag:.*/    tag: ${imageTag}/' ${filePath}"
+                            sh "git add ${filePath}"
+                        }
+
+                        def hasChanges = sh(
+                            script: 'git diff --cached --quiet; echo $?',
+                            returnStdout: true
+                        ).trim()
+
+                        if (hasChanges == '0') {
+                            echo "No GitOps manifest changes to commit."
+                        } else {
+                            sh "git commit -m 'chore(gitops): update ${targetEnv} image tags to ${imageTag} [skip ci]'"
+                            withCredentials([usernamePassword(
+                                credentialsId: 'github-push-token',
+                                usernameVariable: 'GIT_USER',
+                                passwordVariable: 'GIT_TOKEN'
+                            )]) {
+                                sh """
+                                    set +x
+                                    git remote set-url origin https://\$GIT_USER:\$GIT_TOKEN@${GITOPS_REPO_PUSH_PATH}
+                                    set -x
+                                    git push origin HEAD:${GITOPS_BRANCH}
+                                    git remote set-url origin ${GITOPS_REPO_URL}
+                                """
+                            }
+                        }
                     }
                 }
             }
