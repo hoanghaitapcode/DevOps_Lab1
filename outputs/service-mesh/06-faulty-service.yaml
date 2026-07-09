@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faulty
+  namespace: mesh-demo
+  labels:
+    app: faulty
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faulty
+  template:
+    metadata:
+      labels:
+        app: faulty
+    spec:
+      containers:
+      - name: httpbin
+        image: kennethreitz/httpbin
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: faulty
+  namespace: mesh-demo
+  labels:
+    app: faulty
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  selector:
+    app: faulty
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: faulty-retry
+  namespace: mesh-demo
+spec:
+  hosts:
+    - faulty
+  http:
+    - route:
+        - destination:
+            host: faulty
+            port:
+              number: 80
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: 5xx,connect-failure,refused-stream
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-order-to-faulty
+  namespace: mesh-demo
+spec:
+  selector:
+    matchLabels:
+      app: faulty
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/mesh-demo/sa/order"]
