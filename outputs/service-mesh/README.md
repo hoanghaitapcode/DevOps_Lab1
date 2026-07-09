@@ -8,7 +8,7 @@ Tài liệu này hướng dẫn chi tiết cách chạy cổng giám sát (Kiali
 
 Để truy cập các bảng điều khiển (Dashboards) từ máy cá nhân của bạn tới Kubernetes cluster, hãy chạy các lệnh port-forward sau:
 
-### A. Kiali Dashboard (Giám sát Service Mesh)
+### A. Kiali Dashboard (Giám sát Service Mesh).
 1.  **Chạy lệnh port-forward:**
     ```bash
     kubectl port-forward -n istio-system svc/kiali 20001:20001
