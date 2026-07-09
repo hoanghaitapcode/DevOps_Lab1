@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: blocked-client
+  namespace: mesh-demo
+spec:
+  serviceAccountName: default
+  containers:
+  - name: curl
+    image: curlimages/curl:8.8.0
+    command: ["sleep", "365d"]
+  restartPolicy: Never

@@ -1,0 +1,14 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-order-to-tax
+  namespace: mesh-demo
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tax
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/mesh-demo/sa/order"]

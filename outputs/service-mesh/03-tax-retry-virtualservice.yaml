@@ -1,0 +1,18 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: tax-retry
+  namespace: mesh-demo
+spec:
+  hosts:
+    - tax
+  http:
+    - route:
+        - destination:
+            host: tax
+            port:
+              number: 80
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: 5xx,connect-failure,refused-stream
