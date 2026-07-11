@@ -96,9 +96,15 @@ Gửi yêu cầu tới service lỗi `faulty` cố tình trả về mã lỗi 50
 ---
 
 ## 3. Tạo Traffic liên tục (phục vụ thuyết trình/demo)
-Nếu bạn đang demo trực tiếp cho các thầy xem Kiali Graph động và không muốn gõ lệnh tay liên tục để tạo traffic, hãy chạy file script tự động gửi request được tạo sẵn:
-```powershell
-# Chạy trên PowerShell máy local của bạn
-powershell.exe -ExecutionPolicy Bypass -File C:\Users\ADMIN\.gemini\antigravity\brain\2bd4ebd0-92bd-48d6-bd58-274be5e136dc\scratch\traffic_generator_v2.ps1
-```
-Script này sẽ chạy nền liên tục trong 10 phút, gửi request đều đặn để Kiali vẽ sơ đồ động (màu xanh lá đối với `allowed-client` và màu cam đối với `blocked-client`) kèm các chấm chuyển động.
+Nếu bạn đang demo trực tiếp cho các thầy xem Kiali Graph động và không muốn gõ lệnh tay liên tục để tạo traffic, hãy chạy các file script tự động gửi request được đính kèm sẵn trong thư mục này:
+
+*   **Nếu chạy trên Windows (bằng PowerShell):**
+    ```powershell
+    powershell.exe -ExecutionPolicy Bypass -File ./traffic_generator.ps1
+    ```
+*   **Nếu chạy trên macOS/Linux (bằng Terminal):**
+    ```bash
+    chmod +x ./traffic_generator.sh
+    ./traffic_generator.sh
+    ```
+Script này sẽ chạy liên tục trong 15 phút, gửi request đều đặn để Kiali vẽ sơ đồ động (màu xanh lá đối với `allowed-client` và màu cam đối với `blocked-client`) kèm các chấm chuyển động. Bạn chỉ cần nhấn `Ctrl+C` trong terminal để dừng script bất cứ lúc nào.
