@@ -1,2 +1,3 @@
 Trigger Jenkins GitOps flow test on 2026-07-07
 Retry Jenkins GitOps change detection after pipeline fix.
+try dockerpush
