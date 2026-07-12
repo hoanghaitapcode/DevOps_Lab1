@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Jenkins to Docker Hub to GitOps to Argo CD to K3s Architecture</title>
+  <desc id="desc">Architecture diagram for the YAS Project 2 Jenkins-first CI/CD and GitOps deployment flow.</desc>
+  <defs>
+    <marker id="arrow-blue" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#16a34a"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#ea580c"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.13"/>
+    </filter>
+    <style>
+      .page { fill: #f8fafc; }
+      .title { font: 700 38px Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 400 20px Arial, sans-serif; fill: #475569; }
+      .box-title { font: 700 24px Arial, sans-serif; fill: #0f172a; }
+      .box-subtitle { font: 600 16px Arial, sans-serif; fill: #475569; }
+      .body { font: 400 16px Arial, sans-serif; fill: #334155; }
+      .small { font: 400 14px Arial, sans-serif; fill: #475569; }
+      .badge-text { font: 700 15px Arial, sans-serif; fill: #ffffff; }
+      .label { font: 700 16px Arial, sans-serif; fill: #1e293b; }
+      .note { font: 600 15px Arial, sans-serif; fill: #334155; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 16; filter: url(#shadow); }
+      .soft { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.5; rx: 12; }
+      .dev { fill: #ecfeff; stroke: #06b6d4; stroke-width: 2; rx: 12; }
+      .staging { fill: #fff7ed; stroke: #f97316; stroke-width: 2; rx: 12; }
+      .preview { fill: #f0fdf4; stroke: #22c55e; stroke-width: 2; rx: 12; }
+      .arrow-blue { stroke: #2563eb; stroke-width: 4; fill: none; marker-end: url(#arrow-blue); }
+      .arrow-green { stroke: #16a34a; stroke-width: 4; fill: none; marker-end: url(#arrow-green); }
+      .arrow-orange { stroke: #ea580c; stroke-width: 4; fill: none; marker-end: url(#arrow-orange); }
+      .arrow-dashed { stroke-dasharray: 10 9; }
+    </style>
+  </defs>
+
+  <rect class="page" x="0" y="0" width="1600" height="900"/>
+
+  <text class="title" x="80" y="72">YAS Project 2 - Jenkins-first CI/CD với GitOps</text>
+  <text class="subtitle" x="80" y="108">Jenkins build/push image, cập nhật GitOps repo; Argo CD sync dev/staging vào K3s.</text>
+
+  <!-- GitHub source repository -->
+  <rect class="box" x="80" y="210" width="235" height="210"/>
+  <circle cx="128" cy="258" r="26" fill="#111827"/>
+  <text x="128" y="267" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#ffffff">GH</text>
+  <text class="box-title" x="170" y="252">YAS Repo</text>
+  <text class="box-subtitle" x="170" y="278">DevOps_Lab1</text>
+  <text class="body" x="110" y="326">Commit / PR / Merge main</text>
+  <text class="body" x="110" y="354">Release tag: vX.Y.Z</text>
+  <text class="body" x="110" y="382">Jenkinsfile trong repo</text>
+
+  <!-- Jenkins -->
+  <rect class="box" x="410" y="190" width="300" height="250"/>
+  <circle cx="458" cy="240" r="26" fill="#ef4444"/>
+  <text x="458" y="249" text-anchor="middle" font-family="Arial, sans-serif" font-size="25" fill="#ffffff">J</text>
+  <text class="box-title" x="500" y="234">Jenkins</text>
+  <text class="box-subtitle" x="500" y="260">CI/CD chính</text>
+  <text class="body" x="440" y="312">1. Scan branch/tag</text>
+  <text class="body" x="440" y="340">2. Detect service thay đổi</text>
+  <text class="body" x="440" y="368">3. Test + build</text>
+  <text class="body" x="440" y="396">4. Docker build/push</text>
+  <text class="body" x="440" y="424">5. Update GitOps values</text>
+
+  <!-- Docker Hub -->
+  <rect class="box" x="820" y="150" width="280" height="190"/>
+  <circle cx="868" cy="200" r="26" fill="#0ea5e9"/>
+  <text x="868" y="209" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#ffffff">DH</text>
+  <text class="box-title" x="910" y="194">Docker Hub</text>
+  <text class="box-subtitle" x="910" y="220">Image registry</text>
+  <text class="body" x="850" y="270">doubleho/yas-tax:v1.0.0</text>
+  <text class="body" x="850" y="298">doubleho/yas-tax:&lt;commit-sha&gt;</text>
+
+  <!-- GitOps repo -->
+  <rect class="box" x="820" y="430" width="300" height="230"/>
+  <circle cx="868" cy="480" r="26" fill="#7c3aed"/>
+  <text x="868" y="489" text-anchor="middle" font-family="Arial, sans-serif" font-size="23" fill="#ffffff">Git</text>
+  <text class="box-title" x="910" y="474">GitOps Repo</text>
+  <text class="box-subtitle" x="910" y="500">DoubleHo05/yas-deployment</text>
+  <text class="body" x="850" y="552">envs/dev/*-values.yaml</text>
+  <text class="body" x="850" y="580">envs/staging/*-values.yaml</text>
+  <text class="body" x="850" y="608">argocd/root-dev.yaml</text>
+  <text class="body" x="850" y="636">argocd/root-staging.yaml</text>
+
+  <!-- Argo CD -->
+  <rect class="box" x="1210" y="430" width="260" height="230"/>
+  <circle cx="1258" cy="480" r="26" fill="#f97316"/>
+  <text x="1258" y="489" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="#ffffff">Ar</text>
+  <text class="box-title" x="1300" y="474">Argo CD</text>
+  <text class="box-subtitle" x="1300" y="500">GitOps controller</text>
+  <text class="body" x="1240" y="552">Watch GitOps repo</text>
+  <text class="body" x="1240" y="580">Auto sync enabled</text>
+  <text class="body" x="1240" y="608">Prune + self-heal</text>
+
+  <!-- K3s cluster -->
+  <rect class="box" x="1125" y="120" width="375" height="250"/>
+  <circle cx="1172" cy="170" r="26" fill="#2563eb"/>
+  <text x="1172" y="179" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="#ffffff">K8s</text>
+  <text class="box-title" x="1216" y="164">K3s Cluster</text>
+  <text class="box-subtitle" x="1216" y="190">Google Cloud Compute Engine</text>
+  <rect class="soft" x="1155" y="230" width="145" height="78"/>
+  <text class="label" x="1174" y="260">yas-master</text>
+  <text class="small" x="1174" y="286">control-plane</text>
+  <rect class="soft" x="1325" y="230" width="145" height="78"/>
+  <text class="label" x="1344" y="260">yas-worker</text>
+  <text class="small" x="1344" y="286">workloads</text>
+  <text class="body" x="1160" y="345">Pull images từ Docker Hub khi Deployment rollout</text>
+
+  <!-- Namespaces -->
+  <rect class="dev" x="1125" y="710" width="150" height="92"/>
+  <text class="label" x="1165" y="745">dev</text>
+  <text class="small" x="1150" y="772">main commits</text>
+  <rect class="staging" x="1300" y="710" width="150" height="92"/>
+  <text class="label" x="1344" y="745">staging</text>
+  <text class="small" x="1324" y="772">release tags</text>
+
+  <!-- Optional preview -->
+  <rect class="preview" x="420" y="645" width="280" height="126"/>
+  <text class="label" x="450" y="685">developer_build</text>
+  <text class="body" x="450" y="716">Preview namespace</text>
+  <text class="body" x="450" y="744">Developer nhập tag/branch</text>
+
+  <!-- Arrows -->
+  <path class="arrow-blue" d="M 315 315 C 350 315, 370 315, 410 315"/>
+  <text class="note" x="335" y="296">webhook / scan</text>
+
+  <path class="arrow-green" d="M 710 260 C 750 230, 775 215, 820 215"/>
+  <text class="note" x="730" y="205">push image</text>
+
+  <path class="arrow-green arrow-dashed" d="M 1100 245 C 1140 240, 1110 260, 1125 280"/>
+  <text class="note" x="1012" y="125">K3s pull image khi deploy</text>
+  <path class="arrow-green arrow-dashed" d="M 1100 245 C 1170 245, 1200 180, 1245 230"/>
+
+  <path class="arrow-orange" d="M 710 548 C 750 548, 780 548, 820 548"/>
+  <text class="note" x="725" y="528">commit values</text>
+
+  <path class="arrow-orange" d="M 1120 548 C 1158 548, 1176 548, 1210 548"/>
+  <text class="note" x="1136" y="528">watch repo</text>
+
+  <path class="arrow-orange" d="M 1340 660 C 1340 685, 1235 675, 1205 710"/>
+  <text class="note" x="1150" y="695">sync main</text>
+  <path class="arrow-orange" d="M 1360 660 C 1360 685, 1370 688, 1375 710"/>
+  <text class="note" x="1392" y="695">sync tag</text>
+
+  <path class="arrow-blue arrow-dashed" d="M 560 440 C 560 505, 560 575, 560 645"/>
+  <text class="note" x="584" y="548">manual preview deploy</text>
+
+  <!-- Flow badges -->
+  <rect x="83" y="806" width="1434" height="54" rx="16" fill="#e2e8f0" stroke="#cbd5e1"/>
+  <circle cx="118" cy="833" r="16" fill="#06b6d4"/>
+  <text class="badge-text" x="118" y="839" text-anchor="middle">1</text>
+  <text class="small" x="145" y="838">main merge -> Jenkins -> Docker Hub commit SHA -> GitOps envs/dev -> Argo CD -> namespace dev</text>
+  <circle cx="800" cy="833" r="16" fill="#f97316"/>
+  <text class="badge-text" x="800" y="839" text-anchor="middle">2</text>
+  <text class="small" x="827" y="838">release tag vX.Y.Z -> Jenkins -> Docker Hub vX.Y.Z -> GitOps envs/staging -> Argo CD -> namespace staging</text>
+</svg>
